@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>無題 - originpad</title>
+  <meta name="description" content="originpad - シンプルなテキストエディタ">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link id="gfontsBase" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@400&family=Zen+Kaku+Gothic+New:wght@400&family=Kosugi+Maru&family=Source+Code+Pro:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f0ede8;
+      --ui-bg: rgba(255, 252, 248, 0.38);
+      --hover: rgba(0, 0, 0, 0.06);
+      --blur: blur(28px) saturate(1.2);
+      --text: #1a1a1a;
+      --text-dim: rgba(0, 0, 0, 0.5);
+      --dim: #777;
+      --radius: 16px;
+      --radius-lg: 22px;
+      --radius-pill: 100px;
+      --accent: #2AD181;
+      --accent-rgb: 42, 209, 129;
+      --glass-border: rgba(255, 255, 255, 0.45);
+      --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      --status-h: 28px;
+      --ui-font: 'Noto Sans JP', 'Segoe UI', 'Yu Gothic UI', sans-serif;
+      --editor-font: 'Noto Sans JP', sans-serif;
+    }
+
+    body.dark {
+      --bg: #121212;
+      --ui-bg: rgba(30, 30, 30, 0.42);
+      --hover: rgba(255, 255, 255, 0.08);
+      --text: #e0e0e0;
+      --text-dim: rgba(255, 255, 255, 0.55);
+      --dim: #888;
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes scaleIn {
+      from { opacity: 0; transform: translate(-50%, -46%) scale(0.92); }
+      to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(-6px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes statusPulse {
+      0% { color: var(--accent); transform: scale(1.12); }
+      100% { color: var(--dim); transform: scale(1); }
+    }
+
+    @keyframes toastPop {
+      0% { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.92); }
+      65% { opacity: 1; transform: translateX(-50%) translateY(-2px) scale(1.02); }
+      100% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
+
+    @keyframes iconFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1.5px); }
+    }
+
+    body {
+      font-family: var(--ui-font);
+      font-size: 11px;
+      font-weight: 300;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-width: 360px;
+      position: relative;
+      isolation: isolate;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    /* アクセントカラー：左上からぼんやりフェード（JSで更新） */
+    #bgLayer {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background: var(--bg);
+      transition: background 0.45s ease;
+    }
+
+    .chrome {
+      position: relative;
+      z-index: 100;
+    }
+    .editor-wrap {
+      position: relative;
+      z-index: 1;
+    }
+    .status-bar {
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ── Glass ── */
+    .glass {
+      background: var(--ui-bg);
+      backdrop-filter: var(--blur);
+      -webkit-backdrop-filter: var(--blur);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+    }
+
+    @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+      .glass {
+        background: rgba(255, 252, 248, 0.92);
+      }
+      body.dark .glass {
+        background: rgba(40, 40, 40, 0.92);
+      }
+    }
+
+    .chrome {
+      flex-shrink: 0;
+      overflow: visible;
+      width: 100%;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .title-bar {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      font-size: 12px;
+      font-weight: 400;
+      user-select: none;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .title-bar-icon {
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      flex-shrink: 0;
+      opacity: 0.85;
+      animation: iconFloat 4s ease-in-out infinite;
+    }
+
+    .title-bar-text {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .menu-bar {
+      display: flex;
+      align-items: stretch;
+      height: 26px;
+      padding: 0 4px;
+      position: relative;
+    }
+
+    .menu-trigger {
+      padding: 2px 7px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: transparent;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 300;
+      color: var(--text);
+      cursor: pointer;
+      line-height: 18px;
+      white-space: nowrap;
+      transition: background 0.18s ease, border-color 0.18s ease,
+                  transform 0.14s cubic-bezier(0.34, 1.2, 0.64, 1),
+                  box-shadow 0.18s ease;
+    }
+
+    .menu-trigger:hover,
+    .menu-trigger.open {
+      background: var(--hover);
+      border-color: var(--glass-border);
+      box-shadow: 0 2px 10px rgba(var(--accent-rgb), 0.1);
+    }
+
+    .menu-trigger:active {
+      transform: scale(0.94);
+    }
+
+    .menu-trigger.open {
+      transform: scale(1);
+    }
+
+    /* ポップアップ表示中は textarea 自体をブラー（backdrop-filter は textarea をぼかせない） */
+    body.popup-open #edit {
+      filter: blur(16px);
+      -webkit-filter: blur(16px);
+      transition: filter 0.22s ease;
+    }
+
+    #edit {
+      transition: filter 0.22s ease;
+    }
+
+    /* ── Dropdown Menu ── */
+    .menu-dropdown {
+      display: block;
+      position: fixed;
+      min-width: 210px;
+      padding: 6px;
+      border-radius: var(--radius);
+      z-index: 450;
+      visibility: hidden;
+      opacity: 0;
+      transform: translateY(-8px) scale(0.96);
+      transform-origin: top left;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.34, 1.25, 0.64, 1),
+                  visibility 0.2s;
+    }
+
+    .menu-dropdown.show {
+      visibility: visible;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    /* ポップアップ系：重なった背面コンテンツをすりガラス化 */
+    .glass-popup {
+      background: rgba(255, 252, 248, 0.55);
+      backdrop-filter: blur(24px) saturate(1.25);
+      -webkit-backdrop-filter: blur(24px) saturate(1.25);
+    }
+
+    body.dark .glass-popup {
+      background: rgba(28, 28, 28, 0.6);
+    }
+
+    .menu-item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      padding: 5px 10px 5px 24px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 300;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      position: relative;
+      white-space: nowrap;
+      opacity: 0;
+      transform: translateX(-4px);
+      transition: background 0.14s ease, transform 0.16s ease, opacity 0.16s ease;
+    }
+
+    .menu-dropdown.show .menu-item {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .menu-dropdown.show .menu-item:nth-child(1) { transition-delay: 0.03s; }
+    .menu-dropdown.show .menu-item:nth-child(2) { transition-delay: 0.05s; }
+    .menu-dropdown.show .menu-item:nth-child(3) { transition-delay: 0.07s; }
+    .menu-dropdown.show .menu-item:nth-child(4) { transition-delay: 0.09s; }
+    .menu-dropdown.show .menu-item:nth-child(5) { transition-delay: 0.11s; }
+    .menu-dropdown.show .menu-item:nth-child(6) { transition-delay: 0.13s; }
+    .menu-dropdown.show .menu-item:nth-child(7) { transition-delay: 0.15s; }
+    .menu-dropdown.show .menu-item:nth-child(8) { transition-delay: 0.17s; }
+
+    .menu-item:hover {
+      background: var(--hover);
+      transform: translateX(3px);
+    }
+
+    .menu-item .shortcut {
+      margin-left: auto;
+      padding-left: 20px;
+      color: var(--dim);
+      font-size: 10px;
+    }
+
+    .menu-sep {
+      height: 1px;
+      background: var(--glass-border);
+      margin: 4px 8px;
+    }
+
+    .menu-check::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      width: 12px;
+      text-align: center;
+    }
+
+    .menu-check.checked::before { content: '✓'; color: var(--accent); }
+
+    /* ── Editor ── */
+    .editor-wrap {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      display: flex;
+      overflow: hidden;
+    }
+
+    #edit {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      outline: none;
+      resize: none;
+      background: transparent;
+      color: var(--text);
+      padding: 10px 14px;
+      font-family: var(--editor-font);
+      font-size: 16px;
+      line-height: 1.65;
+      caret-color: var(--accent);
+      overflow: auto;
+      white-space: pre;
+      overflow-wrap: normal;
+      transition: font-size 0.2s cubic-bezier(0.34, 1.1, 0.64, 1);
+    }
+
+    #edit.wrap {
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    /* ── Status Bar ── */
+    .status-bar {
+      flex-shrink: 0;
+      height: var(--status-h);
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 14px;
+      font-size: 11px;
+      color: var(--dim);
+      user-select: none;
+      border-top: 1px solid var(--glass-border);
+      background: transparent;
+    }
+
+    .status-hud {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: left;
+      gap: 0;
+    }
+
+    .status-item {
+      text-align: left;
+      transition: color 0.3s ease, transform 0.3s ease;
+    }
+
+    .status-item.pulse {
+      animation: statusPulse 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+
+    .status-item + .status-item::before {
+      content: '·';
+      margin: 0 10px;
+      color: var(--dim);
+      opacity: 0.55;
+    }
+
+    /* ── Overlay & Dialog ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(12px) saturate(1.1);
+      -webkit-backdrop-filter: blur(12px) saturate(1.1);
+      display: block;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease, visibility 0.3s ease,
+                  backdrop-filter 0.3s ease;
+    }
+
+    .overlay.show {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .win-dialog {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -46%) scale(0.92);
+      z-index: 510;
+      border-radius: var(--radius-lg);
+      min-width: 320px;
+      max-width: 90vw;
+      display: block;
+      font-size: 11px;
+      overflow: hidden;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.34, 1.3, 0.64, 1),
+                  visibility 0.28s ease;
+    }
+
+    .win-dialog.show {
+      visibility: visible;
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+
+    .win-dialog.resize-anim {
+      overflow: hidden;
+      transition: opacity 0.28s ease,
+                  transform 0.32s cubic-bezier(0.34, 1.3, 0.64, 1),
+                  visibility 0.28s ease,
+                  height 0.34s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+
+    .win-dialog-body.resize-anim-body {
+      transition: opacity 0.22s ease;
+    }
+
+    .win-dialog-body.resize-fade {
+      opacity: 0.55;
+    }
+
+    .win-dialog-title {
+      padding: 14px 18px 10px;
+      font-size: 13px;
+      font-weight: 400;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .win-dialog-body {
+      padding: 18px;
+    }
+
+    .win-dialog-body p {
+      font-size: 12px;
+      line-height: 1.65;
+      margin-bottom: 12px;
+    }
+
+    .win-dialog-body label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 11px;
+      color: var(--dim);
+    }
+
+    .win-dialog-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      background: var(--hover);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .win-dialog-select {
+      flex: 0 0 auto;
+      width: auto;
+      min-width: 130px;
+      max-width: 240px;
+      padding: 3px 8px;
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      background: var(--hover);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      line-height: 1.3;
+    }
+
+    .win-dialog-input:focus,
+    .win-dialog-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+    }
+
+    body.dark .win-dialog-input,
+    body.dark .win-dialog-select,
+    body.dark .font-url-input {
+      background: #2d2d2d;
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    body.dark .win-dialog-select option {
+      background: #2d2d2d;
+      color: #ffffff;
+    }
+
+    .settings-section {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--dim);
+      letter-spacing: 0.06em;
+      margin: 14px 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+
+    .settings-section:first-child { margin-top: 0; }
+
+    #settingsDialog {
+      min-width: 360px;
+    }
+
+    #settingsDialog .win-dialog-title {
+      padding: 10px 14px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #settingsDialog .win-dialog-footer {
+      padding: 8px 14px 10px;
+    }
+
+    #settingsDialog .win-dialog-body {
+      overflow-y: auto;
+      max-height: min(420px, calc(100vh - 120px));
+      padding: 10px 14px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    #settingsDialog .win-dialog-body::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+
+    #settingsDialog .settings-section {
+      margin: 7px 0 3px;
+    }
+
+    #settingsDialog .settings-section:first-child {
+      margin-top: 0;
+    }
+
+    #settingsDialog .win-dialog-row {
+      margin-bottom: 4px;
+    }
+
+    #settingsDialog .font-url-hint {
+      margin-top: 4px;
+      margin-bottom: 0;
+    }
+
+    .info-btn {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--hover);
+      border: 1px solid var(--glass-border);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+      margin: 0;
+      flex-shrink: 0;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+    .info-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      transform: scale(1.05);
+    }
+    .info-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* Large screens (>= ~15cm height): show settings at full natural size */
+    @media (min-height: 650px) {
+      #settingsDialog .win-dialog-body {
+        max-height: none;
+      }
+    }
+
+    .history-sub {
+      font-size: 10px;
+      color: var(--dim);
+      margin-bottom: 10px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 320px;
+      overflow-y: auto;
+      scrollbar-width: none;
+      transition: opacity 0.22s ease;
+    }
+
+    .history-list.fading {
+      opacity: 0.4;
+    }
+
+    .history-list::-webkit-scrollbar { display: none; }
+
+    .history-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      background: var(--hover);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 300;
+      text-align: left;
+      cursor: default;
+      opacity: 0;
+      transform: translateY(6px);
+      animation: fadeInUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      transition: background 0.14s ease, transform 0.16s ease, border-color 0.14s ease;
+    }
+
+    .history-item:hover {
+      background: rgba(var(--accent-rgb), 0.12);
+      transform: translateY(-1px);
+      border-color: rgba(var(--accent-rgb), 0.35);
+    }
+
+    .history-time {
+      font-size: 10px;
+      color: var(--dim);
+    }
+
+    .history-preview {
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .history-empty {
+      font-size: 11px;
+      color: var(--dim);
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    .win-dialog-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .win-dialog-row label {
+      width: 72px;
+      flex-shrink: 0;
+      margin: 0;
+    }
+
+    .win-dialog-footer {
+      padding: 12px 18px 16px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      border-top: 1px solid var(--glass-border);
+    }
+
+    .win-btn {
+      min-width: 80px;
+      padding: 8px 18px;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-pill);
+      background: var(--hover);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 400;
+      cursor: default;
+      transition: filter 0.18s ease, transform 0.14s cubic-bezier(0.34, 1.2, 0.64, 1),
+                  box-shadow 0.18s ease, background 0.18s ease;
+    }
+
+    .win-btn:hover {
+      filter: brightness(1.05);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .win-btn:active { transform: scale(0.96) translateY(0); }
+
+    .win-btn.primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .win-btn.primary:hover { filter: brightness(1.1); }
+
+    /* ── Context Menu ── */
+    #contextMenu {
+      position: fixed;
+      z-index: 400;
+      padding: 6px;
+      min-width: 160px;
+      border-radius: var(--radius);
+      display: block;
+      visibility: hidden;
+      opacity: 0;
+      transform: scale(0.94) translateY(-4px);
+      transform-origin: top left;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.22s cubic-bezier(0.34, 1.25, 0.64, 1),
+                  visibility 0.2s ease;
+    }
+
+    #contextMenu.show {
+      visibility: visible;
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+    }
+
+    #contextMenu button {
+      display: flex;
+      width: 100%;
+      padding: 5px 12px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 300;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    #contextMenu button:hover:not(:disabled) { background: var(--hover); }
+    #contextMenu button:disabled { color: var(--dim); opacity: 0.45; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: calc(var(--status-h) + 24px);
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      z-index: 600;
+      padding: 8px 20px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 300;
+      color: var(--text);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      white-space: nowrap;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      animation: toastPop 0.42s cubic-bezier(0.34, 1.3, 0.64, 1);
+    }
+
+    /* Color swatches */
+    .color-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .color-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .color-swatch:hover { transform: scale(1.12); }
+
+    .color-swatch.active {
+      border-color: var(--text);
+      box-shadow: 0 0 0 2px var(--ui-bg);
+    }
+
+    .row-label {
+      width: 72px;
+      flex-shrink: 0;
+      font-size: 11px;
+      color: var(--dim);
+    }
+
+    /* Toggle */
+    .co-toggle {
+      position: relative;
+      width: 44px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .co-toggle input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .co-toggle-track {
+      display: block;
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 13px;
+      pointer-events: none;
+      transition: background 0.25s;
+    }
+
+    body.dark .co-toggle-track { background: rgba(255, 255, 255, 0.2); }
+
+    .co-toggle-track::after {
+      content: '';
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      left: 2px;
+      top: 2px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .co-toggle input:checked + .co-toggle-track { background: var(--accent); }
+    .co-toggle input:checked + .co-toggle-track::after { transform: translateX(18px); }
+
+    .font-url-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .font-url-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      background: var(--hover);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 11px;
+      outline: none;
+    }
+
+    .font-url-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+    }
+
+    .font-url-error {
+      display: block;
+      font-size: 10px;
+      color: #e57373;
+      margin-top: 6px;
+      min-height: 14px;
+    }
+
+    .font-url-hint {
+      font-size: 10px;
+      color: var(--dim);
+      margin-top: 6px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    #caretMirror {
+      position: fixed;
+      left: -99999px;
+      top: 0;
+      visibility: hidden;
+      pointer-events: none;
+      box-sizing: border-box;
+      border: 0;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="bgLayer" aria-hidden="true"></div>
+  <div id="caretMirror" aria-hidden="true"></div>
+  <header class="chrome">
+    <div class="title-bar">
+      <svg class="title-bar-icon" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/>
+        <line x1="3" y1="5" x2="13" y2="5" stroke="currentColor" stroke-width="1"/>
+        <line x1="3" y1="7.5" x2="10" y2="7.5" stroke="currentColor" stroke-width="1"/>
+        <line x1="3" y1="10" x2="11" y2="10" stroke="currentColor" stroke-width="1"/>
+      </svg>
+      <span class="title-bar-text" id="titleBarText">無題 - originpad</span>
+    </div>
+
+    <nav class="menu-bar" id="menuBar">
+      <button type="button" class="menu-trigger" data-menu="fileMenu">ファイル(<u>F</u>)</button>
+      <button type="button" class="menu-trigger" data-menu="editMenu">編集(<u>E</u>)</button>
+      <button type="button" class="menu-trigger" id="historyMenuBtn">履歴(<u>H</u>)</button>
+      <button type="button" class="menu-trigger" id="settingsMenuBtn">設定(<u>S</u>)</button>
+    </nav>
+  </header>
+
+  <div class="menu-dropdown glass glass-popup" id="fileMenu">
+    <button type="button" class="menu-item" data-action="new">新規作成(<u>N</u>)<span class="shortcut">Ctrl+N</span></button>
+    <button type="button" class="menu-item" data-action="open">開く(<u>O</u>)<span class="shortcut">Ctrl+O</span></button>
+    <button type="button" class="menu-item" data-action="save">保存(<u>S</u>)<span class="shortcut">Ctrl+S</span></button>
+    <div class="menu-sep"></div>
+    <button type="button" class="menu-item" data-action="history">自動保存の履歴(<u>H</u>)</button>
+  </div>
+
+  <div class="menu-dropdown glass glass-popup" id="editMenu">
+    <button type="button" class="menu-item" data-action="cut">切り取り(<u>T</u>)<span class="shortcut">Ctrl+X</span></button>
+    <button type="button" class="menu-item" data-action="copy">コピー(<u>C</u>)<span class="shortcut">Ctrl+C</span></button>
+    <button type="button" class="menu-item" data-action="paste">貼り付け(<u>P</u>)<span class="shortcut">Ctrl+V</span></button>
+    <button type="button" class="menu-item" data-action="delete">削除(<u>D</u>)</button>
+    <button type="button" class="menu-item" data-action="font">フォント</button>
+    <button type="button" class="menu-item menu-check" data-action="toggleWrap">自動改行</button>
+    <div class="menu-sep"></div>
+    <button type="button" class="menu-item" data-action="selectAll">すべて選択(<u>A</u>)<span class="shortcut">Ctrl+A</span></button>
+  </div>
+
+  <div class="editor-wrap">
+    <textarea id="edit" class="wrap" spellcheck="false"></textarea>
+  </div>
+
+  <footer class="status-bar" id="statusBar">
+    <div class="status-hud">
+      <span class="status-item" id="statusFontSize">16</span>
+      <span class="status-item" id="statusPos">行 1、列 1</span>
+      <span class="status-item" id="statusChars">0 文字</span>
+    </div>
+  </footer>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div class="win-dialog glass glass-popup" id="confirmDialog">
+    <div class="win-dialog-title">originpad</div>
+    <div class="win-dialog-body">
+      <p id="confirmMsg">内容をすべて消去しますか？</p>
+    </div>
+    <div class="win-dialog-footer">
+      <button class="win-btn primary" id="confirmOk">OK</button>
+      <button class="win-btn" id="confirmCancel">キャンセル</button>
+    </div>
+  </div>
+
+  <div class="win-dialog glass glass-popup" id="saveDialog">
+    <div class="win-dialog-title">名前を付けて保存</div>
+    <div class="win-dialog-body">
+      <label for="saveFileName">ファイル名:</label>
+      <input type="text" class="win-dialog-input" id="saveFileName" value="無題.txt">
+    </div>
+    <div class="win-dialog-footer">
+      <button class="win-btn primary" id="saveOk">保存</button>
+      <button class="win-btn" id="saveCancel">キャンセル</button>
+    </div>
+  </div>
+
+  <div class="win-dialog glass glass-popup" id="settingsDialog">
+    <div class="win-dialog-title">
+      <span>設定</span>
+      <button type="button" class="info-btn" id="settingsInfoBtn" title="Information">i</button>
+    </div>
+    <div class="win-dialog-body">
+      <div class="settings-section">フォント</div>
+      <div class="win-dialog-row">
+        <span class="row-label">フォント</span>
+        <select class="win-dialog-select" id="fontSel" style="flex:1">
+          <option value="'Noto Sans JP', sans-serif" selected>Noto Sans JP</option>
+          <option value="'Noto Serif JP', serif">Noto Serif JP</option>
+          <option value="'Zen Kaku Gothic New', sans-serif">Zen Kaku Gothic New</option>
+          <option value="'Kosugi Maru', sans-serif">Kosugi Maru</option>
+          <option value="'Source Code Pro', monospace">Source Code Pro</option>
+        </select>
+      </div>
+      <div class="win-dialog-row">
+        <span class="row-label">サイズ</span>
+        <select class="win-dialog-select" id="sizeSel" style="flex:1">
+          <option value="8">8</option><option value="9">9</option><option value="10">10</option>
+          <option value="11">11</option><option value="12">12</option><option value="14">14</option>
+          <option value="16" selected>16</option><option value="18">18</option><option value="20">20</option>
+          <option value="22">22</option><option value="24">24</option><option value="26">26</option>
+          <option value="28">28</option><option value="36">36</option><option value="48">48</option>
+          <option value="72">72</option>
+        </select>
+      </div>
+      <div class="font-url-row">
+        <input type="text" class="font-url-input" id="fontUrlInput"
+          placeholder="Google Fonts の CSS URL を貼り付け">
+        <button class="win-btn" id="fontAddBtn" style="min-width:auto">追加</button>
+      </div>
+      <span class="font-url-error" id="fontUrlError"></span>
+      <p class="font-url-hint">例: fonts.googleapis.com/css2?family=...</p>
+
+      <div class="settings-section">表示</div>
+      <div class="win-dialog-row">
+        <span class="row-label">ダークモード</span>
+        <div class="co-toggle">
+          <input type="checkbox" id="darkToggle">
+          <span class="co-toggle-track"></span>
+        </div>
+      </div>
+      <div class="win-dialog-row">
+        <span class="row-label">自動改行</span>
+        <div class="co-toggle">
+          <input type="checkbox" id="wordWrapToggle" checked>
+          <span class="co-toggle-track"></span>
+        </div>
+      </div>
+      <div class="win-dialog-row">
+        <span class="row-label">下部バー</span>
+        <div class="co-toggle">
+          <input type="checkbox" id="statusBarToggle" checked>
+          <span class="co-toggle-track"></span>
+        </div>
+      </div>
+      <div class="win-dialog-row">
+        <span class="row-label">アクセント</span>
+        <div class="color-swatches" id="colorSwatches"></div>
+      </div>
+
+      <div class="settings-section">保存</div>
+      <div class="win-dialog-row">
+        <span class="row-label">自動保存</span>
+        <div class="co-toggle">
+          <input type="checkbox" id="autoSaveToggle" checked>
+          <span class="co-toggle-track"></span>
+        </div>
+      </div>
+      <div class="win-dialog-row">
+        <span class="row-label">間隔</span>
+        <select class="win-dialog-select" id="autoSaveInterval" style="flex:1">
+          <option value="30">30秒</option>
+          <option value="60">1分</option>
+          <option value="120" selected>2分</option>
+          <option value="300">5分</option>
+        </select>
+      </div>
+      <div class="win-dialog-row">
+        <span class="row-label">履歴</span>
+        <button class="win-btn" id="openHistoryBtn" style="min-width:auto">自動保存の履歴</button>
+      </div>
+      <div class="win-dialog-row">
+        <span class="row-label"></span>
+        <button class="win-btn" id="clearDataBtn" style="min-width:auto">保存データを消去</button>
+      </div>
+    </div>
+    <div class="win-dialog-footer">
+      <button class="win-btn primary" id="settingsOk">OK</button>
+      <button class="win-btn" id="settingsCancel">キャンセル</button>
+    </div>
+  </div>
+
+  <div class="win-dialog glass glass-popup" id="infoDialog">
+    <div class="win-dialog-title">information</div>
+    <div class="win-dialog-body">
+      <p style="font-size:12px; line-height:1.6;">originpad - シンプルなテキストエディタ<br>（旧 Notepad 風）</p>
+      <p style="font-size:11px; color:var(--dim); margin-top:8px;">v0.1</p>
+    </div>
+    <div class="win-dialog-footer">
+      <button class="win-btn primary" id="infoCloseBtn">閉じる</button>
+    </div>
+  </div>
+
+  <div class="win-dialog glass glass-popup" id="historyDialog">
+    <div class="win-dialog-title">自動保存の履歴</div>
+    <div class="win-dialog-body">
+      <p class="history-sub">最大10件まで保持されます</p>
+      <div class="history-list" id="historyList"></div>
+    </div>
+    <div class="win-dialog-footer">
+      <button class="win-btn" id="historyClearBtn">履歴を消去</button>
+      <button class="win-btn primary" id="historyCloseBtn">閉じる</button>
+    </div>
+  </div>
+
+  <div id="contextMenu" class="glass glass-popup">
+    <button data-action="cut">切り取り</button>
+    <button data-action="copy">コピー</button>
+    <button data-action="paste">貼り付け</button>
+    <div class="menu-sep"></div>
+    <button data-action="selectAll">すべて選択</button>
+  </div>
+
+  <div id="toast" class="glass"></div>
+  <input type="file" id="fileInput" hidden accept=".txt,.md,.json,.csv,.html,.css,.js,.xml,.log,.ini">
+
+  <script>
+  (function() {
+    // originpad storage keys (migrated from old notepad_* keys)
+    var STORAGE_KEY = 'originpad_content';
+    var SETTINGS_KEY = 'originpad_settings';
+    var HISTORY_KEY = 'originpad_history';
+    var CLIP_KEY = 'originpad_clipboard';
+
+    // Migrate data from old "notepad" keys if present
+    (function migrateFromNotepad() {
+      try {
+        var oldMap = {
+          'notepad_content': STORAGE_KEY,
+          'notepad_settings': SETTINGS_KEY,
+          'notepad_history': HISTORY_KEY,
+          'notepad_clipboard': CLIP_KEY
+        };
+        Object.keys(oldMap).forEach(function(oldKey) {
+          var newKey = oldMap[oldKey];
+          if (!localStorage.getItem(newKey) && localStorage.getItem(oldKey)) {
+            localStorage.setItem(newKey, localStorage.getItem(oldKey));
+            localStorage.removeItem(oldKey);
+          }
+        });
+      } catch (e) {}
+    })();
+
+    var MAX_HISTORY = 10;
+    var FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72];
+    var BUILTIN_FONTS = [
+      { label: 'Noto Sans JP', family: "'Noto Sans JP', sans-serif" },
+      { label: 'Noto Serif JP', family: "'Noto Serif JP', serif" },
+      { label: 'Zen Kaku Gothic New', family: "'Zen Kaku Gothic New', sans-serif" },
+      { label: 'Kosugi Maru', family: "'Kosugi Maru', sans-serif" },
+      { label: 'Source Code Pro', family: "'Source Code Pro', monospace" }
+    ];
+    var ACCENT_COLORS = [
+      { color: '#2AD181', rgb: '42,209,129' },
+      { color: '#0078D4', rgb: '0,120,212' },
+      { color: '#c9a181', rgb: '201,161,129' },
+      { color: '#E74856', rgb: '231,72,86' },
+      { color: '#8764B8', rgb: '135,100,184' },
+      { color: '#FF8C00', rgb: '255,140,0' }
+    ];
+
+    var state = { fileName: '無題', dialogType: null, autoSaveTimer: null, openMenu: null };
+    var loadedFontUrls = {};
+    var settingsDraft = null;
+    var pendingAccent = null;
+    var pendingAccentRgb = null;
+
+    var edit = document.getElementById('edit');
+    var overlay = document.getElementById('overlay');
+    var statusBar = document.getElementById('statusBar');
+    var contextMenu = document.getElementById('contextMenu');
+    var toast = document.getElementById('toast');
+    var bgLayer = document.getElementById('bgLayer');
+    var toastTimer = null;
+
+    function loadSettings() {
+      try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; }
+      catch(e) { return {}; }
+    }
+
+    function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
+
+    var settings = Object.assign({
+      font: "'Noto Sans JP', sans-serif",
+      size: '16',
+      accent: '#2AD181',
+      accentRgb: '42,209,129',
+      dark: false,
+      wordWrap: true,
+      statusBar: true,
+      autoSave: true,
+      autoSaveInterval: '120',
+      customFonts: []
+    }, loadSettings());
+
+    if (!Array.isArray(settings.customFonts)) settings.customFonts = [];
+
+    function updateAccentBg(rgb) {
+      var useRgb = rgb || settings.accentRgb;
+      var alpha = document.body.classList.contains('dark') ? 0.22 : 0.34;
+      bgLayer.style.background =
+        'radial-gradient(ellipse 130% 90% at 0% 0%, rgba(' + useRgb + ', ' + alpha + '), transparent 72%), var(--bg)';
+    }
+
+    function loadFontStylesheet(url) {
+      if (loadedFontUrls[url]) return;
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = url;
+      link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+      loadedFontUrls[url] = true;
+    }
+
+    function parseGoogleFontUrl(url) {
+      try {
+        var u = new URL(url.trim());
+        if (!/fonts\.googleapis\.com$/i.test(u.hostname)) return null;
+        var familyParam = u.searchParams.get('family') || '';
+        if (!familyParam) return null;
+        var first = familyParam.split('|')[0].split(':')[0].replace(/\+/g, ' ').trim();
+        if (!first) return null;
+        var cssUrl = url.trim();
+        if (!/^https?:\/\//i.test(cssUrl)) cssUrl = 'https://' + cssUrl;
+        return { name: first, family: "'" + first + "', sans-serif", url: cssUrl };
+      } catch(e) { return null; }
+    }
+
+    function rebuildFontSelect() {
+      var sel = document.getElementById('fontSel');
+      sel.innerHTML = '';
+      BUILTIN_FONTS.forEach(function(f) {
+        var opt = document.createElement('option');
+        opt.value = f.family;
+        opt.textContent = f.label;
+        sel.appendChild(opt);
+      });
+      settings.customFonts.forEach(function(f) {
+        var opt = document.createElement('option');
+        opt.value = f.family;
+        opt.textContent = f.name + ' (追加)';
+        sel.appendChild(opt);
+      });
+      var hasMatch = [].some.call(sel.options, function(o) { return o.value === settings.font; });
+      if (!hasMatch) {
+        settings.font = BUILTIN_FONTS[0].family;
+        saveSettings(settings);
+      }
+      sel.value = settings.font;
+    }
+
+    function initCustomFonts() {
+      settings.customFonts.forEach(function(f) {
+        if (f.url) loadFontStylesheet(f.url);
+      });
+      rebuildFontSelect();
+    }
+
+    function addCustomFont() {
+      var settingsDialog = document.getElementById('settingsDialog');
+      var input = document.getElementById('fontUrlInput');
+      var err = document.getElementById('fontUrlError');
+      var parsed = parseGoogleFontUrl(input.value);
+      if (!parsed) {
+        animateDialogContent(settingsDialog, function() {
+          err.textContent = 'Google Fonts の CSS URL を入力してください';
+        });
+        return;
+      }
+      var hadError = !!err.textContent;
+      var applyFont = function() {
+        var exists = settings.customFonts.some(function(f) { return f.url === parsed.url; });
+        if (!exists) {
+          settings.customFonts.push(parsed);
+          saveSettings(settings);
+          loadFontStylesheet(parsed.url);
+          rebuildFontSelect();
+        }
+        document.getElementById('fontSel').value = parsed.family;
+        err.textContent = '';
+        input.value = '';
+      };
+      if (hadError && settingsDialog.classList.contains('show')) {
+        animateDialogContent(settingsDialog, applyFont);
+      } else {
+        applyFont();
+      }
+      showToast('フォントを追加しました: ' + parsed.name);
+    }
+
+    function syncSettingsForm() {
+      rebuildFontSelect();
+      document.getElementById('fontSel').value = settings.font;
+      document.getElementById('sizeSel').value = settings.size;
+      document.getElementById('autoSaveToggle').checked = settings.autoSave;
+      document.getElementById('autoSaveInterval').value = settings.autoSaveInterval;
+      document.getElementById('darkToggle').checked = settings.dark;
+      document.getElementById('wordWrapToggle').checked = settings.wordWrap;
+      document.getElementById('statusBarToggle').checked = settings.statusBar;
+      document.querySelectorAll('.color-swatch').forEach(function(el) {
+        el.classList.toggle('active', el.dataset.color === settings.accent);
+      });
+    }
+
+    function openSettingsDialog(focusField) {
+      settingsDraft = JSON.parse(JSON.stringify({
+        font: settings.font,
+        size: settings.size,
+        accent: settings.accent,
+        accentRgb: settings.accentRgb,
+        dark: settings.dark,
+        wordWrap: settings.wordWrap,
+        statusBar: settings.statusBar,
+        autoSave: settings.autoSave,
+        autoSaveInterval: settings.autoSaveInterval
+      }));
+      pendingAccent = null;
+      pendingAccentRgb = null;
+      document.getElementById('fontUrlError').textContent = '';
+      document.getElementById('fontUrlInput').value = '';
+      syncSettingsForm();
+      showDialog('settingsDialog');
+      if (focusField === 'font') {
+        var sel = document.getElementById('fontSel');
+        if (sel) sel.focus();
+      }
+    }
+
+    function applySettings() {
+      document.documentElement.style.setProperty('--accent', settings.accent);
+      document.documentElement.style.setProperty('--accent-rgb', settings.accentRgb);
+      document.body.classList.toggle('dark', settings.dark);
+      edit.style.fontFamily = settings.font;
+      edit.style.fontSize = settings.size + 'px';
+      edit.classList.toggle('wrap', settings.wordWrap);
+      statusBar.style.display = settings.statusBar ? 'flex' : 'none';
+      document.getElementById('sizeSel').value = settings.size;
+      rebuildFontSelect();
+      updateAccentBg();
+      updateFontSizeStatus();
+      setupAutoSave();
+      scheduleStatsUpdate();
+    }
+
+    function initColorSwatches() {
+      var container = document.getElementById('colorSwatches');
+      ACCENT_COLORS.forEach(function(c) {
+        var sw = document.createElement('div');
+        sw.className = 'color-swatch';
+        sw.style.background = c.color;
+        sw.dataset.color = c.color;
+        sw.dataset.rgb = c.rgb;
+        sw.addEventListener('click', function() {
+          pendingAccent = c.color;
+          pendingAccentRgb = c.rgb;
+          document.querySelectorAll('.color-swatch').forEach(function(el) {
+            el.classList.toggle('active', el.dataset.color === c.color);
+          });
+          document.documentElement.style.setProperty('--accent', c.color);
+          document.documentElement.style.setProperty('--accent-rgb', c.rgb);
+          updateAccentBg(c.rgb);
+        });
+        container.appendChild(sw);
+      });
+    }
+
+    function showToast(msg, duration) {
+      clearTimeout(toastTimer);
+      toast.textContent = msg;
+      toast.classList.add('show');
+      toastTimer = setTimeout(function() { toast.classList.remove('show'); }, duration || 1800);
+    }
+
+    var caretMirror = document.getElementById('caretMirror');
+    var statsRaf = null;
+
+    function escapeMirrorText(t) {
+      return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function getEditContentWidth() {
+      var cs = getComputedStyle(edit);
+      return edit.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    }
+
+    function syncCaretMirror() {
+      var cs = getComputedStyle(edit);
+      caretMirror.style.fontFamily = cs.fontFamily;
+      caretMirror.style.fontSize = cs.fontSize;
+      caretMirror.style.fontWeight = cs.fontWeight;
+      caretMirror.style.fontStyle = cs.fontStyle;
+      caretMirror.style.letterSpacing = cs.letterSpacing;
+      caretMirror.style.lineHeight = cs.lineHeight;
+      caretMirror.style.padding = cs.padding;
+      caretMirror.style.width = getEditContentWidth() + 'px';
+      if (edit.classList.contains('wrap')) {
+        caretMirror.style.whiteSpace = 'pre-wrap';
+        caretMirror.style.overflowWrap = 'break-word';
+        caretMirror.style.wordBreak = 'break-word';
+      } else {
+        caretMirror.style.whiteSpace = 'pre';
+        caretMirror.style.overflowWrap = 'normal';
+        caretMirror.style.wordBreak = 'normal';
+      }
+    }
+
+    function markerTopFor(text) {
+      syncCaretMirror();
+      caretMirror.innerHTML = escapeMirrorText(text) + '<span class="caret-m">\u200b</span>';
+      return caretMirror.querySelector('.caret-m').offsetTop;
+    }
+
+    function getLogicalCaretPos() {
+      var text = edit.value;
+      var pos = edit.selectionStart;
+      var before = text.slice(0, pos);
+      var lines = before.split('\n');
+      return { line: lines.length, col: lines[lines.length - 1].length + 1 };
+    }
+
+    function getVisualCaretPos() {
+      var caret = edit.selectionStart;
+      var before = edit.value.slice(0, caret);
+      syncCaretMirror();
+      caretMirror.innerHTML = escapeMirrorText(before) + '<span class="caret-m">\u200b</span>';
+      var marker = caretMirror.querySelector('.caret-m');
+      var lineHeight = parseFloat(getComputedStyle(edit).lineHeight);
+      if (!lineHeight || isNaN(lineHeight)) {
+        lineHeight = parseFloat(getComputedStyle(edit).fontSize) * 1.65;
+      }
+      var lineTop = marker.offsetTop;
+      var visualLine = Math.floor(lineTop / lineHeight) + 1;
+
+      var lo = 0;
+      var hi = before.length;
+      while (lo < hi) {
+        var mid = Math.floor((lo + hi) / 2);
+        if (markerTopFor(before.slice(0, mid)) < lineTop) lo = mid + 1;
+        else hi = mid;
+      }
+      var col = Math.max(1, caret - lo);
+      return { line: visualLine, col: col };
+    }
+
+    function getCaretPos() {
+      // Use visual lines when auto-wrap (wrap class) is active, so wrapped lines are counted as separate lines in status
+      if (!edit.classList.contains('wrap')) return getLogicalCaretPos();
+      return getVisualCaretPos();
+    }
+
+    function updateStats() {
+      var text = edit.value;
+      var pos = getCaretPos();
+      document.getElementById('statusPos').textContent = '行 ' + pos.line + '、列 ' + pos.col;
+      document.getElementById('statusChars').textContent = text.length.toLocaleString() + ' 文字';
+    }
+
+    function scheduleStatsUpdate() {
+      if (statsRaf) return;
+      statsRaf = requestAnimationFrame(function() {
+        statsRaf = null;
+        updateStats();
+      });
+    }
+
+    function updateFontSizeStatus(pulse) {
+      var el = document.getElementById('statusFontSize');
+      el.textContent = settings.size;
+      if (!pulse) return;
+      el.classList.remove('pulse');
+      void el.offsetWidth;
+      el.classList.add('pulse');
+    }
+
+    function updateTitle() {
+      var title = state.fileName + ' - originpad';
+      document.getElementById('titleBarText').textContent = title;
+      document.title = title;
+    }
+
+    function setFontSize(size, showTip) {
+      var nearest = FONT_SIZES.reduce(function(prev, cur) {
+        return Math.abs(cur - size) < Math.abs(prev - size) ? cur : prev;
+      });
+      settings.size = String(nearest);
+      document.getElementById('sizeSel').value = settings.size;
+      edit.style.fontSize = settings.size + 'px';
+      saveSettings(settings);
+      if (showTip) showToast('サイズ: ' + settings.size);
+      updateFontSizeStatus(!!showTip);
+      scheduleStatsUpdate();
+    }
+
+    function zoomIn() {
+      var idx = FONT_SIZES.indexOf(parseInt(settings.size, 10));
+      if (idx < 0) idx = FONT_SIZES.findIndex(function(s) { return s >= parseInt(settings.size, 10); });
+      if (idx < 0) idx = 5;
+      if (idx < FONT_SIZES.length - 1) setFontSize(FONT_SIZES[idx + 1], true);
+    }
+
+    function zoomOut() {
+      var idx = FONT_SIZES.indexOf(parseInt(settings.size, 10));
+      if (idx < 0) {
+        for (var i = FONT_SIZES.length - 1; i >= 0; i--) {
+          if (FONT_SIZES[i] <= parseInt(settings.size, 10)) { idx = i; break; }
+        }
+      }
+      if (idx > 0) setFontSize(FONT_SIZES[idx - 1], true);
+    }
+
+    function updatePopupState() {
+      var anyOpen = !!state.openMenu ||
+        contextMenu.classList.contains('show') ||
+        overlay.classList.contains('show');
+      document.body.classList.toggle('popup-open', anyOpen);
+    }
+
+    function positionMenu(menu, trigger) {
+      var rect = trigger.getBoundingClientRect();
+      menu.style.left = Math.max(4, rect.left) + 'px';
+      menu.style.top = (rect.bottom + 2) + 'px';
+    }
+
+    function closeAllMenus() {
+      document.querySelectorAll('.menu-dropdown').forEach(function(m) { m.classList.remove('show'); });
+      document.querySelectorAll('.menu-trigger').forEach(function(t) { t.classList.remove('open'); });
+      state.openMenu = null;
+      updatePopupState();
+    }
+
+    function openMenu(menuId, trigger) {
+      closeAllMenus();
+      var menu = document.getElementById(menuId);
+      if (!menu) return;
+      positionMenu(menu, trigger);
+      menu.classList.add('show');
+      trigger.classList.add('open');
+      state.openMenu = menuId;
+      updateEditMenuState();
+      updatePopupState();
+    }
+
+    function updateEditMenuState() {
+      var hasSel = edit.selectionStart !== edit.selectionEnd;
+      document.querySelectorAll('[data-action="cut"], [data-action="copy"], [data-action="delete"]').forEach(function(el) {
+        el.disabled = !hasSel;
+      });
+      var hasClip = false;
+      try { hasClip = !!(localStorage.getItem(CLIP_KEY) || '').length; } catch(e) {}
+      document.querySelectorAll('[data-action="paste"]').forEach(function(el) {
+        el.disabled = !hasClip && !(navigator.clipboard && navigator.clipboard.readText);
+      });
+      document.querySelectorAll('[data-action="toggleWrap"]').forEach(function(el) {
+        el.classList.toggle('checked', settings.wordWrap);
+      });
+    }
+
+    document.querySelectorAll('.menu-trigger').forEach(function(trigger) {
+      trigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var menuId = trigger.dataset.menu;
+        if (!menuId) return;
+        if (state.openMenu === menuId) closeAllMenus();
+        else openMenu(menuId, trigger);
+      });
+      trigger.addEventListener('mouseenter', function() {
+        if (!trigger.dataset.menu) return;
+        if (state.openMenu) openMenu(trigger.dataset.menu, trigger);
+      });
+    });
+
+    document.getElementById('historyMenuBtn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      closeAllMenus();
+      openHistoryDialog();
+    });
+
+    document.getElementById('settingsMenuBtn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      closeAllMenus();
+      openSettingsDialog();
+    });
+
+    window.addEventListener('resize', function() {
+      scheduleStatsUpdate();
+      if (!state.openMenu) return;
+      var trigger = document.querySelector('.menu-trigger.open');
+      var menu = document.getElementById(state.openMenu);
+      if (trigger && menu) positionMenu(menu, trigger);
+    });
+
+    if (window.ResizeObserver) {
+      var statsResizeObs = new ResizeObserver(function() {
+        scheduleStatsUpdate();
+      });
+      statsResizeObs.observe(edit);
+      statsResizeObs.observe(edit.parentElement);
+    }
+
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('#menuBar') || e.target.closest('.menu-dropdown')) return;
+      closeAllMenus();
+      hideContextMenu();
+    });
+    document.getElementById('menuBar').addEventListener('click', function(e) { e.stopPropagation(); });
+
+    function showOverlay() {
+      overlay.classList.add('show');
+      updatePopupState();
+    }
+    function hideOverlay() {
+      overlay.classList.remove('show');
+      document.querySelectorAll('.win-dialog').forEach(function(d) {
+        d.classList.remove('show', 'resize-anim');
+        d.style.height = '';
+      });
+      updatePopupState();
+    }
+    function showDialog(id) {
+      document.querySelectorAll('.win-dialog').forEach(function(d) {
+        if (d.id !== id) {
+          d.classList.remove('show', 'resize-anim');
+          d.style.height = '';
+        }
+      });
+      showOverlay();
+      document.getElementById(id).classList.add('show');
+      updatePopupState();
+    }
+
+    function animateDialogContent(dialog, mutateFn) {
+      if (!dialog) {
+        if (mutateFn) mutateFn();
+        return;
+      }
+      if (!dialog.classList.contains('show')) {
+        if (mutateFn) mutateFn();
+        return;
+      }
+      var body = dialog.querySelector('.win-dialog-body');
+      var list = dialog.querySelector('.history-list');
+      var startH = dialog.offsetHeight;
+      dialog.classList.add('resize-anim');
+      dialog.style.height = startH + 'px';
+      if (body) body.classList.add('resize-anim-body', 'resize-fade');
+      if (list) list.classList.add('fading');
+
+      if (mutateFn) mutateFn();
+
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          dialog.style.height = dialog.scrollHeight + 'px';
+          if (body) body.classList.remove('resize-fade');
+          if (list) list.classList.remove('fading');
+        });
+      });
+
+      var done = false;
+      function cleanup(e) {
+        if (done) return;
+        if (e && e.target !== dialog) return;
+        if (e && e.propertyName && e.propertyName !== 'height') return;
+        done = true;
+        dialog.style.height = '';
+        dialog.classList.remove('resize-anim');
+        if (body) body.classList.remove('resize-anim-body', 'resize-fade');
+        dialog.removeEventListener('transitionend', cleanup);
+      }
+      dialog.addEventListener('transitionend', cleanup);
+      setTimeout(cleanup, 450);
+    }
+
+    function doNew() {
+      if (!edit.value.trim()) {
+        edit.value = '';
+        state.fileName = '無題';
+        updateTitle(); updateStats(); saveToStorage();
+        return;
+      }
+      state.dialogType = 'new';
+      document.getElementById('confirmMsg').textContent = '内容をすべて消去しますか？';
+      showDialog('confirmDialog');
+    }
+
+    function doSave() {
+      var defaultName = state.fileName === '無題' ? '無題.txt' :
+        (/\.(txt|md|csv|log)$/i.test(state.fileName) ? state.fileName : state.fileName + '.txt');
+      document.getElementById('saveFileName').value = defaultName;
+      showDialog('saveDialog');
+      document.getElementById('saveFileName').focus();
+      document.getElementById('saveFileName').select();
+    }
+
+    function loadHistory() {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+      catch(e) { return []; }
+    }
+
+    function saveHistory(arr) {
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); } catch(e) {}
+    }
+
+    function pushHistoryEntry() {
+      var content = edit.value;
+      var history = loadHistory();
+      if (history.length && history[0].content === content) return;
+      history.unshift({
+        id: Date.now(),
+        content: content,
+        fileName: state.fileName,
+        savedAt: Date.now()
+      });
+      if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+      saveHistory(history);
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          content: edit.value, fileName: state.fileName, savedAt: Date.now()
+        }));
+      } catch(e) {}
+    }
+
+    function formatHistoryTime(ts) {
+      var d = new Date(ts);
+      return (d.getMonth() + 1) + '/' + d.getDate() + ' ' +
+        String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    }
+
+    function renderHistoryList(animate) {
+      var dialog = document.getElementById('historyDialog');
+      var doRender = function() {
+        var list = document.getElementById('historyList');
+        var history = loadHistory();
+        list.innerHTML = '';
+        if (!history.length) {
+          list.innerHTML = '<div class="history-empty">履歴がありません</div>';
+          return;
+        }
+        history.forEach(function(entry, i) {
+          var btn = document.createElement('button');
+          btn.className = 'history-item';
+          btn.style.animationDelay = (i * 0.045) + 's';
+          var preview = entry.content.slice(0, 48).replace(/\n/g, ' ') || '(空)';
+          if (entry.content.length > 48) preview += '…';
+          btn.innerHTML = '<span class="history-time">' + formatHistoryTime(entry.savedAt) + '</span>' +
+            '<span class="history-preview"></span>';
+          btn.querySelector('.history-preview').textContent = preview;
+          btn.addEventListener('click', function() {
+            edit.value = entry.content;
+            state.fileName = entry.fileName || '無題';
+            updateTitle();
+            updateStats();
+            saveToStorage();
+            hideOverlay();
+            showToast('履歴を復元しました');
+          });
+          list.appendChild(btn);
+        });
+      };
+      if (animate && dialog.classList.contains('show')) {
+        animateDialogContent(dialog, doRender);
+      } else {
+        doRender();
+      }
+    }
+
+    function openHistoryDialog() {
+      renderHistoryList(false);
+      showDialog('historyDialog');
+    }
+
+    function clearHistory() {
+      localStorage.removeItem(HISTORY_KEY);
+      renderHistoryList(true);
+      showToast('履歴を消去しました');
+    }
+
+    function restoreFromStorage() {
+      try {
+        var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (data && data.content !== undefined) {
+          edit.value = data.content;
+          state.fileName = data.fileName || '無題';
+          updateTitle();
+          showToast('前回の内容を復元しました', 2200);
+        }
+      } catch(e) {}
+    }
+
+    function setupAutoSave() {
+      clearInterval(state.autoSaveTimer);
+      if (!settings.autoSave) return;
+      state.autoSaveTimer = setInterval(function() {
+        saveToStorage();
+        pushHistoryEntry();
+      }, parseInt(settings.autoSaveInterval, 10) * 1000);
+    }
+
+    function downloadFile(name) {
+      var blob = new Blob([edit.value], { type: 'text/plain;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function doCopy() {
+      var s = edit.selectionStart, e = edit.selectionEnd;
+      var text = edit.value.slice(s, e);
+      if (!text) return;
+      localStorage.setItem(CLIP_KEY, text);
+      if (navigator.clipboard) navigator.clipboard.writeText(text).catch(function() {});
+    }
+
+    function doCut() {
+      var s = edit.selectionStart, e = edit.selectionEnd;
+      var text = edit.value.slice(s, e);
+      if (!text) return;
+      localStorage.setItem(CLIP_KEY, text);
+      if (navigator.clipboard) navigator.clipboard.writeText(text).catch(function() {});
+      edit.setRangeText('', s, e, 'start');
+      updateStats(); saveToStorage();
+    }
+
+    function doPaste() {
+      function insert(text) {
+        var s = edit.selectionStart, e = edit.selectionEnd;
+        edit.setRangeText(text, s, e, 'end');
+        updateStats(); saveToStorage();
+      }
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        navigator.clipboard.readText()
+          .then(function(t) { insert(t || localStorage.getItem(CLIP_KEY) || ''); })
+          .catch(function() { insert(localStorage.getItem(CLIP_KEY) || ''); });
+      } else {
+        insert(localStorage.getItem(CLIP_KEY) || '');
+      }
+    }
+
+    function doDelete() {
+      var s = edit.selectionStart, e = edit.selectionEnd;
+      if (s === e) return;
+      edit.setRangeText('', s, e, 'start');
+      updateStats(); saveToStorage();
+    }
+
+    function hideContextMenu() {
+      contextMenu.classList.remove('show');
+      updatePopupState();
+    }
+
+    function showContextMenu(x, y) {
+      updateEditMenuState();
+      var menuW = 170, menuH = 140;
+      contextMenu.style.left = Math.max(4, Math.min(x, window.innerWidth - menuW - 4)) + 'px';
+      contextMenu.style.top = Math.max(4, Math.min(y, window.innerHeight - menuH - 4)) + 'px';
+      contextMenu.classList.add('show');
+      updatePopupState();
+    }
+
+    function handleAction(action) {
+      closeAllMenus();
+      switch(action) {
+        case 'new': doNew(); break;
+        case 'open': document.getElementById('fileInput').click(); break;
+        case 'save': doSave(); break;
+        case 'history': openHistoryDialog(); break;
+        case 'cut': doCut(); break;
+        case 'copy': doCopy(); break;
+        case 'paste': doPaste(); break;
+        case 'delete': doDelete(); break;
+        case 'font': openSettingsDialog('font'); break;
+        case 'toggleWrap':
+          settings.wordWrap = !settings.wordWrap;
+          saveSettings(settings);
+          applySettings();
+          showToast('自動改行 ' + (settings.wordWrap ? 'ON' : 'OFF'));
+          break;
+        case 'selectAll': edit.select(); updateStats(); break;
+        case 'settings': openSettingsDialog(); break;
+      }
+    }
+
+    document.querySelectorAll('.menu-dropdown').forEach(function(menu) {
+      menu.addEventListener('click', function(e) {
+        var item = e.target.closest('.menu-item[data-action]');
+        if (!item) return;
+        e.stopPropagation();
+        if (item.disabled) return;
+        handleAction(item.dataset.action);
+      });
+    });
+    // Prevent underlying textarea caret/focus when clicking inside menus
+    document.querySelectorAll('.menu-dropdown').forEach(function(menu) {
+      menu.addEventListener('mousedown', function(e) {
+        var item = e.target.closest('.menu-item[data-action]');
+        if (item) e.preventDefault();
+      });
+    });
+
+    contextMenu.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn || btn.disabled) return;
+      e.stopPropagation();
+      handleAction(btn.dataset.action);
+      hideContextMenu();
+    });
+
+    document.getElementById('confirmOk').addEventListener('click', function() {
+      if (state.dialogType === 'new') {
+        edit.value = ''; state.fileName = '無題';
+        updateTitle(); updateStats(); saveToStorage();
+      } else if (state.dialogType === 'clear') {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(HISTORY_KEY);
+        showToast('保存データを消去しました');
+      }
+      state.dialogType = null; hideOverlay();
+    });
+
+    document.getElementById('confirmCancel').addEventListener('click', function() {
+      state.dialogType = null; hideOverlay();
+    });
+
+    document.getElementById('saveOk').addEventListener('click', function() {
+      var name = document.getElementById('saveFileName').value.trim() || '無題.txt';
+      if (!/\.(txt|log|md|csv)$/i.test(name)) name += '.txt';
+      state.fileName = name; updateTitle();
+      downloadFile(name); saveToStorage();
+      showToast('保存しました'); hideOverlay();
+    });
+
+    document.getElementById('saveCancel').addEventListener('click', hideOverlay);
+
+    document.getElementById('settingsOk').addEventListener('click', function() {
+      settings.font = document.getElementById('fontSel').value;
+      settings.size = document.getElementById('sizeSel').value;
+      settings.autoSave = document.getElementById('autoSaveToggle').checked;
+      settings.autoSaveInterval = document.getElementById('autoSaveInterval').value;
+      settings.dark = document.getElementById('darkToggle').checked;
+      settings.wordWrap = document.getElementById('wordWrapToggle').checked;
+      settings.statusBar = document.getElementById('statusBarToggle').checked;
+      if (pendingAccent) {
+        settings.accent = pendingAccent;
+        settings.accentRgb = pendingAccentRgb;
+      }
+      settingsDraft = null;
+      pendingAccent = null;
+      pendingAccentRgb = null;
+      saveSettings(settings);
+      applySettings();
+      if (settings.autoSave) saveToStorage();
+      hideOverlay();
+    });
+
+    document.getElementById('settingsCancel').addEventListener('click', function() {
+      if (settingsDraft) Object.assign(settings, settingsDraft);
+      settingsDraft = null;
+      pendingAccent = null;
+      pendingAccentRgb = null;
+      applySettings();
+      hideOverlay();
+    });
+
+    document.getElementById('settingsInfoBtn').addEventListener('click', function() {
+      // Open info dialog on top of settings (keep settings visible underneath)
+      document.getElementById('infoDialog').classList.add('show');
+      overlay.classList.add('show');
+      updatePopupState();
+    });
+
+    document.getElementById('infoCloseBtn').addEventListener('click', function() {
+      document.getElementById('infoDialog').classList.remove('show');
+      if (!document.getElementById('settingsDialog').classList.contains('show')) {
+        hideOverlay();
+      } else {
+        updatePopupState();
+      }
+    });
+
+    document.getElementById('fontAddBtn').addEventListener('click', addCustomFont);
+    document.getElementById('fontUrlInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') addCustomFont();
+    });
+
+    document.getElementById('openHistoryBtn').addEventListener('click', function() {
+      document.getElementById('settingsDialog').classList.remove('show');
+      openHistoryDialog();
+    });
+
+    document.getElementById('historyCloseBtn').addEventListener('click', hideOverlay);
+    document.getElementById('historyClearBtn').addEventListener('click', clearHistory);
+
+    document.getElementById('clearDataBtn').addEventListener('click', function() {
+      state.dialogType = 'clear';
+      document.getElementById('confirmMsg').textContent = '自動保存されたデータを消去しますか？';
+      document.getElementById('settingsDialog').classList.remove('show');
+      showDialog('confirmDialog');
+    });
+
+    overlay.addEventListener('click', function() {
+      if (document.getElementById('infoDialog').classList.contains('show')) {
+        document.getElementById('infoDialog').classList.remove('show');
+        if (!document.getElementById('settingsDialog').classList.contains('show')) {
+          hideOverlay();
+        } else {
+          updatePopupState();
+        }
+        return;
+      }
+      if (document.getElementById('settingsDialog').classList.contains('show')) {
+        document.getElementById('settingsCancel').click();
+        return;
+      }
+      if (document.getElementById('historyDialog').classList.contains('show')) {
+        hideOverlay();
+        return;
+      }
+      hideOverlay();
+    });
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function() {
+        edit.value = reader.result;
+        state.fileName = file.name;
+        updateTitle(); updateStats(); saveToStorage();
+        showToast('開きました: ' + file.name);
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    edit.addEventListener('input', function() {
+      updateStats();
+      clearTimeout(edit._saveDebounce);
+      edit._saveDebounce = setTimeout(saveToStorage, 600);
+    });
+    edit.addEventListener('click', function() { updateStats(); hideContextMenu(); });
+    edit.addEventListener('keyup', updateStats);
+    edit.addEventListener('mouseup', updateStats);
+    edit.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      showContextMenu(e.clientX, e.clientY);
+    });
+
+    edit.addEventListener('wheel', function(e) {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      if (e.deltaY < 0) zoomIn(); else zoomOut();
+    }, { passive: false });
+
+    document.addEventListener('keydown', function(e) {
+      var ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key === 's') { e.preventDefault(); doSave(); return; }
+      if (ctrl && e.key === 'n') { e.preventDefault(); doNew(); return; }
+      if (ctrl && e.key === 'o') { e.preventDefault(); document.getElementById('fileInput').click(); return; }
+      if (ctrl && e.key === 'a') { e.preventDefault(); edit.select(); updateStats(); return; }
+      if (ctrl && e.key === 'ArrowUp') { e.preventDefault(); zoomIn(); return; }
+      if (ctrl && e.key === 'ArrowDown') { e.preventDefault(); zoomOut(); return; }
+      if (e.altKey) {
+        var key = e.key.toLowerCase();
+        if (key === 'f') { e.preventDefault(); openMenu('fileMenu', document.querySelector('[data-menu="fileMenu"]')); }
+        if (key === 'e') { e.preventDefault(); openMenu('editMenu', document.querySelector('[data-menu="editMenu"]')); }
+        if (key === 's') { e.preventDefault(); openSettingsDialog(); }
+        if (key === 'h') { e.preventDefault(); openHistoryDialog(); }
+      }
+      if (e.key === 'Escape') { closeAllMenus(); hideOverlay(); hideContextMenu(); }
+    });
+
+    initColorSwatches();
+    initCustomFonts();
+    applySettings();
+    restoreFromStorage();
+    if (settings.autoSave) pushHistoryEntry();
+    updateStats();
+    updateTitle();
+    edit.focus();
+  })();
+  </script>
+</body>
+</html>
