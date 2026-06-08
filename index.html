@@ -6,6 +6,7 @@
    <meta name="google-site-verification" content="Z5LCrw2wiWOC0bTQynoScEQ9LTvHoEucbmQwoReCLXE" />
   <title>無題 - originpad</title>
   <meta name="description" content="originpad - 学生が開発したメモ帳アプリ">
+  <link rel="icon" href="/icon-512.png" sizes="512x512">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link id="gfontsBase" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@400&family=Zen+Kaku+Gothic+New:wght@400&family=Kosugi+Maru&family=Source+Code+Pro:wght@400&display=swap" rel="stylesheet">
@@ -318,6 +319,124 @@
     }
 
     .menu-check.checked::before { content: '✓'; color: var(--accent); }
+
+    /* ── Tab Switcher (HyperOS / ColorOS style callout) ── */
+    .tab-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .tab-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 15px;
+      height: 15px;
+      padding: 0 3px;
+      font-size: 9px;
+      font-weight: 500;
+      line-height: 1;
+      border-radius: 999px;
+      background: rgba(var(--accent-rgb), 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(var(--accent-rgb), 0.25);
+    }
+    .tab-switcher {
+      position: fixed;
+      z-index: 470;
+      padding: 6px 7px;
+      border-radius: 999px;
+      min-width: 288px;
+      max-width: 92vw;
+      box-shadow: var(--glass-shadow);
+      visibility: hidden;
+      opacity: 0;
+      transform: scale(0.6, 0.38) translateY(-8px);
+      transform-origin: 50% 0%;
+      transition: opacity 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.36s cubic-bezier(0.22, 1.0, 0.32, 1.25),
+                  visibility 0.2s;
+      pointer-events: none;
+    }
+    .tab-switcher.show {
+      visibility: visible;
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+    }
+    .tab-switcher-bar {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 28px;
+      padding: 0 2px;
+    }
+    .tab-slot {
+      flex: 1 1 0;
+      min-width: 20px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--text);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      transition: background 0.12s ease, border-color 0.12s ease,
+                  color 0.12s ease, transform 0.1s ease;
+    }
+    .tab-slot:hover {
+      background: var(--hover);
+      border-color: var(--glass-border);
+    }
+    .tab-slot:active {
+      transform: scale(0.92);
+    }
+    .tab-slot.active {
+      background: rgba(var(--accent-rgb), 0.16);
+      border-color: rgba(var(--accent-rgb), 0.38);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .tab-slot.has-content::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3.5px;
+      height: 1.5px;
+      background: var(--accent);
+      border-radius: 999px;
+      opacity: 0.65;
+    }
+    .tab-slot[data-tab="9"] {
+      min-width: 24px; /* "10" */
+    }
+    .tab-switcher.show .tab-slot {
+      animation: tabNumPop 0.28s cubic-bezier(0.34, 1.25, 0.64, 1) both;
+    }
+    .tab-switcher.show .tab-slot:nth-child(1) { animation-delay: 0.01s; }
+    .tab-switcher.show .tab-slot:nth-child(2) { animation-delay: 0.025s; }
+    .tab-switcher.show .tab-slot:nth-child(3) { animation-delay: 0.04s; }
+    .tab-switcher.show .tab-slot:nth-child(4) { animation-delay: 0.055s; }
+    .tab-switcher.show .tab-slot:nth-child(5) { animation-delay: 0.07s; }
+    .tab-switcher.show .tab-slot:nth-child(6) { animation-delay: 0.085s; }
+    .tab-switcher.show .tab-slot:nth-child(7) { animation-delay: 0.1s; }
+    .tab-switcher.show .tab-slot:nth-child(8) { animation-delay: 0.115s; }
+    .tab-switcher.show .tab-slot:nth-child(9) { animation-delay: 0.13s; }
+    .tab-switcher.show .tab-slot:nth-child(10) { animation-delay: 0.145s; }
+
+    @keyframes tabNumPop {
+      from { opacity: 0; transform: translateY(5px) scale(0.7); }
+      60% { transform: translateY(-0.8px) scale(1.04); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
 
     /* ── Editor ── */
     .editor-wrap {
@@ -701,6 +820,31 @@
       margin-bottom: 12px;
     }
 
+    /* Use normal flow: make select flexible and keep button at row end */
+    #settingsDialog .win-dialog-row {
+      position: static;
+    }
+
+    /* Let selects expand to fill available space inside the row */
+    #settingsDialog .win-dialog-row > .win-dialog-select {
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: none;
+    }
+
+    /* Move the manage button to the far right of the row */
+    #settingsDialog .win-dialog-row > #fontManageBtn {
+      margin-left: auto;
+      position: static;
+      z-index: auto;
+      cursor: pointer;
+    }
+
+    /* Keep default select padding so text doesn't touch the arrow */
+    #fontSel {
+      padding-right: 8px;
+    }
+
     .win-dialog-row label {
       width: 72px;
       flex-shrink: 0;
@@ -733,10 +877,10 @@
     .win-btn:hover {
       filter: brightness(1.05);
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-      transform: translateY(-1px);
+      /* lift effect removed as requested */
     }
 
-    .win-btn:active { transform: scale(0.96) translateY(0); }
+    .win-btn:active { transform: scale(0.96); }
 
     .win-btn.primary {
       background: var(--accent);
@@ -745,6 +889,20 @@
     }
 
     .win-btn.primary:hover { filter: brightness(1.1); }
+
+    /* Manage button next to font select — match the select's corner radius */
+    #fontManageBtn {
+      border-radius: 8px;
+      padding: 4px 10px;
+      min-width: auto;
+    }
+
+    /* 追加 button in font manager: match the adjacent .font-url-input border-radius (12px) */
+    #managerFontAddBtn {
+      border-radius: 12px;
+      padding: 8px 12px;
+      min-width: auto;
+    }
 
     /* ── Context Menu ── */
     #contextMenu {
@@ -923,6 +1081,90 @@
       margin-top: 6px;
     }
 
+    /* Font Manager */
+    .font-manager-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 220px;
+      overflow-y: auto;
+      margin: 8px 0;
+      padding-right: 4px;
+      position: relative;
+    }
+    .font-manager-item {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 6px 10px;
+      background: var(--hover);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      font-size: 11px;
+    }
+    .font-manager-item .font-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 8px;
+    }
+    .font-manager-item .delete-btn {
+      background: transparent;
+      border: 1px solid var(--glass-border);
+      color: #e57373;
+      font-size: 13px;
+      line-height: 1;
+      padding: 2px 7px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .font-manager-item .delete-btn:hover {
+      background: rgba(229, 115, 115, 0.15);
+      border-color: #e57373;
+    }
+    .font-manager-item .delete-btn:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    .font-manager-empty {
+      font-size: 11px;
+      color: var(--dim);
+      text-align: left;
+      padding: 12px 0;
+    }
+
+    /* Font manager window: no lift on button press/hover, everything left-packed */
+    #fontManagerDialog .win-btn:hover,
+    #fontManagerDialog .win-btn:active {
+      transform: none;
+    }
+    #fontManagerDialog .delete-btn {
+      /* ensure no unexpected lift */
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .particle {
+      position: fixed;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 10000;
+      will-change: transform, opacity;
+    }
+
+    @keyframes particle-explode {
+      0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--dx), var(--dy)) scale(0.2);
+        opacity: 0;
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: 0.01ms !important;
@@ -944,6 +1186,22 @@
   </style>
 </head>
 <body>
+<script>
+/* Early dark mode to prevent bright white flash on load (eye strain fix) */
+(function() {
+  try {
+    var key = 'originpad_settings';
+    var raw = localStorage.getItem(key);
+    var s = raw ? JSON.parse(raw) : {};
+    if (s.dark === undefined) {
+      s.dark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    if (s.dark) {
+      document.body.classList.add('dark');
+    }
+  } catch(e) {}
+})();
+</script>
   <div id="bgLayer" aria-hidden="true"></div>
   <div id="caretMirror" aria-hidden="true"></div>
   <header class="chrome">
@@ -961,6 +1219,7 @@
       <button type="button" class="menu-trigger" data-menu="fileMenu">ファイル(<u>F</u>)</button>
       <button type="button" class="menu-trigger" data-menu="editMenu">編集(<u>E</u>)</button>
       <button type="button" class="menu-trigger" id="historyMenuBtn">履歴(<u>H</u>)</button>
+      <button type="button" class="menu-trigger tab-trigger" id="tabMenuBtn">タブ <span class="tab-num" id="currentTabNum">1</span></button>
       <button type="button" class="menu-trigger" id="settingsMenuBtn">設定(<u>S</u>)</button>
     </nav>
   </header>
@@ -1037,6 +1296,7 @@
           <option value="'Kosugi Maru', sans-serif">Kosugi Maru</option>
           <option value="'Source Code Pro', monospace">Source Code Pro</option>
         </select>
+        <button type="button" class="win-btn" id="fontManageBtn" style="margin-left:4px;">管理</button>
       </div>
       <div class="win-dialog-row">
         <span class="row-label">サイズ</span>
@@ -1049,13 +1309,6 @@
           <option value="72">72</option>
         </select>
       </div>
-      <div class="font-url-row">
-        <input type="text" class="font-url-input" id="fontUrlInput"
-          placeholder="Google Fonts の CSS URL を貼り付け">
-        <button class="win-btn" id="fontAddBtn" style="min-width:auto">追加</button>
-      </div>
-      <span class="font-url-error" id="fontUrlError"></span>
-      <p class="font-url-hint">例: fonts.googleapis.com/css2?family=...</p>
 
       <div class="settings-section">表示</div>
       <div class="win-dialog-row">
@@ -1119,8 +1372,8 @@
   <div class="win-dialog glass glass-popup" id="infoDialog">
     <div class="win-dialog-title">information</div>
     <div class="win-dialog-body">
-      <p style="font-size:12px; line-height:1.6;">あいこんとかはおいおいやるんで気長に待ってもらえれば幸いです<br><br>もとになったバージョン Notepad26 version May192026End</p>
-      <p style="font-size:11px; color:var(--dim); margin-top:8px;">v0.3</p>
+      <p style="font-size:12px; line-height:1.6;">バグ山盛りなんでちょくちょく修正していきます。気長に待ってね<br><br>Engine:Notepad26</p>
+      <p style="font-size:11px; color:var(--dim); margin-top:8px;">v1.0.0</p>
     </div>
     <div class="win-dialog-footer">
       <button class="win-btn primary" id="infoCloseBtn">閉じる</button>
@@ -1136,6 +1389,31 @@
     <div class="win-dialog-footer">
       <button class="win-btn" id="historyClearBtn">履歴を消去</button>
       <button class="win-btn primary" id="historyCloseBtn">閉じる</button>
+    </div>
+  </div>
+
+  <!-- Tab switcher: long thin pill callout from menu button (HyperOS/ColorOS inspired) -->
+  <div id="tabSwitcher" class="tab-switcher glass glass-popup" aria-label="タブ切り替え">
+    <div class="tab-switcher-bar" id="tabBar"></div>
+  </div>
+
+  <!-- Font Manager Dialog -->
+  <div class="win-dialog glass glass-popup" id="fontManagerDialog">
+    <div class="win-dialog-title">フォント管理</div>
+    <div class="win-dialog-body">
+      <p class="history-sub">追加したGoogleフォントの一覧です。</p>
+      <div class="font-manager-list" id="fontManagerList"></div>
+
+      <div class="font-url-row" style="margin-top: 10px;">
+        <input type="text" class="font-url-input" id="managerFontUrlInput"
+          placeholder="Google Fonts の URL (specimen や css2?family=...)">
+        <button class="win-btn" id="managerFontAddBtn" style="min-width:auto">追加</button>
+      </div>
+      <span class="font-url-error" id="managerFontUrlError"></span>
+      <p class="font-url-hint" style="margin-top:2px;">フォントページのURLやCSS URLを貼り付けられます</p>
+    </div>
+    <div class="win-dialog-footer">
+      <button class="win-btn primary" id="fontManagerCloseBtn">閉じる</button>
     </div>
   </div>
 
@@ -1155,8 +1433,12 @@
     // originpad storage keys (migrated from old notepad_* keys)
     var STORAGE_KEY = 'originpad_content';
     var SETTINGS_KEY = 'originpad_settings';
-    var HISTORY_KEY = 'originpad_history';
+    var HISTORY_KEY = 'originpad_history'; // legacy (global)
+    var HISTORIES_KEY = 'originpad_histories'; // per-tab histories
     var CLIP_KEY = 'originpad_clipboard';
+    var TABS_KEY = 'originpad_tabs';
+    var ACTIVE_KEY = 'originpad_active_tab';
+    var NUM_TABS = 10;
 
     // Migrate data from old "notepad" keys if present
     (function migrateFromNotepad() {
@@ -1201,6 +1483,10 @@
     var pendingAccent = null;
     var pendingAccentRgb = null;
 
+    var tabs = [];
+    var activeTab = 0;
+    var migratedLegacy = false;
+
     var edit = document.getElementById('edit');
     var overlay = document.getElementById('overlay');
     var statusBar = document.getElementById('statusBar');
@@ -1208,6 +1494,7 @@
     var toast = document.getElementById('toast');
     var bgLayer = document.getElementById('bgLayer');
     var toastTimer = null;
+    var tabCloseTimer = null;
 
     function loadSettings() {
       try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; }
@@ -1216,6 +1503,10 @@
 
     function saveSettings(s) { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); }
 
+    var loaded = loadSettings();
+    if (loaded.dark === undefined) {
+      loaded.dark = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
     var settings = Object.assign({
       font: "'Noto Sans JP', sans-serif",
       size: '16',
@@ -1227,7 +1518,7 @@
       autoSave: true,
       autoSaveInterval: '120',
       customFonts: []
-    }, loadSettings());
+    }, loaded);
 
     if (!Array.isArray(settings.customFonts)) settings.customFonts = [];
 
@@ -1249,15 +1540,60 @@
     }
 
     function parseGoogleFontUrl(url) {
+      if (!url || !url.trim()) return null;
+      var input = url.trim();
+
       try {
-        var u = new URL(url.trim());
-        if (!/fonts\.googleapis\.com$/i.test(u.hostname)) return null;
-        var familyParam = u.searchParams.get('family') || '';
+        // Normalize to full URL
+        var normalized = input;
+        if (!/^https?:\/\//i.test(normalized)) {
+          normalized = 'https://' + normalized;
+        }
+        var u = new URL(normalized);
+
+        var familyParam = '';
+
+        // Direct CSS URL (fonts.googleapis.com/css2?family=...)
+        if (/fonts\.googleapis\.com$/i.test(u.hostname)) {
+          familyParam = u.searchParams.get('family') || '';
+        }
+
+        // Google Fonts specimen page or share links (fonts.google.com/...)
+        if (!familyParam && /fonts\.google\.com$/i.test(u.hostname)) {
+          // /specimen/Font+Name or /specimen/Font-Name
+          var pathMatch = u.pathname.match(/\/specimen\/([^/?#]+)/i);
+          if (pathMatch) {
+            familyParam = decodeURIComponent(pathMatch[1]).replace(/[-+]/g, ' ').trim();
+          } else {
+            // share?selection=family:Inter:wght@400 or similar
+            var selection = u.searchParams.get('selection') || '';
+            var selMatch = selection.match(/family:([^;&]+)/i);
+            if (selMatch) {
+              familyParam = selMatch[1].split(':')[0].trim();
+            }
+          }
+        }
+
+        if (!familyParam) {
+          // Last attempt: any URL that has family= somewhere
+          familyParam = u.searchParams.get('family') || '';
+        }
+
         if (!familyParam) return null;
+
         var first = familyParam.split('|')[0].split(':')[0].replace(/\+/g, ' ').trim();
         if (!first) return null;
-        var cssUrl = url.trim();
-        if (!/^https?:\/\//i.test(cssUrl)) cssUrl = 'https://' + cssUrl;
+
+        // Build a clean CSS URL if it was a specimen page
+        var cssUrl;
+        if (/fonts\.google\.com$/i.test(u.hostname)) {
+          var safeName = first.replace(/ /g, '+');
+          cssUrl = 'https://fonts.googleapis.com/css2?family=' + safeName + '&display=swap';
+        } else {
+          cssUrl = input;
+          if (!/^https?:\/\//i.test(cssUrl)) cssUrl = 'https://' + cssUrl;
+        }
+
         return { name: first, family: "'" + first + "', sans-serif", url: cssUrl };
       } catch(e) { return null; }
     }
@@ -1292,36 +1628,139 @@
       rebuildFontSelect();
     }
 
-    function addCustomFont() {
-      var settingsDialog = document.getElementById('settingsDialog');
-      var input = document.getElementById('fontUrlInput');
-      var err = document.getElementById('fontUrlError');
+    function addCustomFontFromInput(input, errEl) {
       var parsed = parseGoogleFontUrl(input.value);
       if (!parsed) {
-        animateDialogContent(settingsDialog, function() {
-          err.textContent = 'Google Fonts の CSS URL を入力してください';
-        });
+        if (errEl) errEl.textContent = '有効なGoogle Fonts URLを入力してください';
+        return false;
+      }
+      var exists = settings.customFonts.some(function(f) { return f.url === parsed.url; });
+      if (!exists) {
+        settings.customFonts.push(parsed);
+        loadFontStylesheet(parsed.url);
+        rebuildFontSelect();
+      }
+      // Select the newly added font
+      var sel = document.getElementById('fontSel');
+      if (sel) sel.value = parsed.family;
+      settings.font = parsed.family;
+      edit.style.fontFamily = parsed.family;
+
+      saveSettings(settings);  // ensure the addition (and selection) is persisted immediately
+
+      if (errEl) errEl.textContent = '';
+      input.value = '';
+      showToast('フォントを追加しました: ' + parsed.name);
+      return true;
+    }
+
+    function renderCustomFontList() {
+      var container = document.getElementById('fontManagerList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!settings.customFonts || settings.customFonts.length === 0) {
+        var empty = document.createElement('div');
+        empty.className = 'font-manager-empty';
+        empty.textContent = '追加されたフォントはありません';
+        container.appendChild(empty);
         return;
       }
-      var hadError = !!err.textContent;
-      var applyFont = function() {
-        var exists = settings.customFonts.some(function(f) { return f.url === parsed.url; });
-        if (!exists) {
-          settings.customFonts.push(parsed);
-          saveSettings(settings);
-          loadFontStylesheet(parsed.url);
-          rebuildFontSelect();
-        }
-        document.getElementById('fontSel').value = parsed.family;
-        err.textContent = '';
-        input.value = '';
-      };
-      if (hadError && settingsDialog.classList.contains('show')) {
-        animateDialogContent(settingsDialog, applyFont);
-      } else {
-        applyFont();
+
+      settings.customFonts.forEach(function(f, idx) {
+        var item = document.createElement('div');
+        item.className = 'font-manager-item';
+
+        var nameSpan = document.createElement('span');
+        nameSpan.className = 'font-name';
+        nameSpan.textContent = f.name;
+        nameSpan.title = f.url || '';
+
+        var delBtn = document.createElement('button');
+        delBtn.className = 'delete-btn';
+        delBtn.textContent = '×';
+        delBtn.title = '削除';
+
+        delBtn.addEventListener('click', function() {
+          // explosion at the center of the font name text
+          var nameRect = nameSpan.getBoundingClientRect();
+          var cx = nameRect.left + nameRect.width / 2;
+          var cy = nameRect.top + nameRect.height / 2;
+          createExplosion(cx, cy);
+
+          // quick fade for the row, then remove from data
+          item.style.transition = 'opacity 0.18s ease';
+          item.style.opacity = '0';
+          setTimeout(function() {
+            removeCustomFont(idx);
+          }, 160);
+        });
+
+        item.appendChild(nameSpan);
+        item.appendChild(delBtn);
+        container.appendChild(item);
+      });
+    }
+
+    function removeCustomFont(idx) {
+      if (!settings.customFonts || idx < 0 || idx >= settings.customFonts.length) return;
+
+      var toRemove = settings.customFonts[idx];
+      var wasSelected = settings.font === toRemove.family;
+
+      settings.customFonts.splice(idx, 1);
+      saveSettings(settings);
+
+      if (wasSelected) {
+        // fallback to first built-in (default fonts cannot be removed)
+        settings.font = BUILTIN_FONTS[0].family;
+        edit.style.fontFamily = settings.font;
+        saveSettings(settings);
       }
-      showToast('フォントを追加しました: ' + parsed.name);
+
+      rebuildFontSelect();
+      renderCustomFontList();
+
+      // clear any error
+      var err = document.getElementById('managerFontUrlError');
+      if (err) err.textContent = '';
+    }
+
+    /* ===== Font delete with trash can + explosion effect ===== */
+    function createExplosion(x, y) {
+      for (var i = 0; i < 12; i++) {
+        var p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        var angle = Math.random() * 360;
+        var dist = 22 + Math.random() * 48;
+        var rad = angle * Math.PI / 180;
+        p.style.setProperty('--dx', (Math.cos(rad) * dist) + 'px');
+        p.style.setProperty('--dy', (Math.sin(rad) * dist) + 'px');
+        p.style.background = (Math.random() > 0.55) ? '#ff4757' : 'var(--accent)';
+        document.body.appendChild(p);
+        p.style.animation = 'particle-explode 0.5s ease-out forwards';
+        (function(pp) {
+          setTimeout(function() { if (pp && pp.parentNode) pp.parentNode.removeChild(pp); }, 580);
+        })(p);
+      }
+    }
+
+    function openFontManagerDialog() {
+      var dialog = document.getElementById('fontManagerDialog');
+      var err = document.getElementById('managerFontUrlError');
+      var input = document.getElementById('managerFontUrlInput');
+      if (!dialog) return;
+
+      if (err) err.textContent = '';
+      if (input) input.value = '';
+
+      renderCustomFontList();
+
+      dialog.classList.add('show');
+      overlay.classList.add('show');
+      updatePopupState();
     }
 
     function syncSettingsForm() {
@@ -1352,8 +1791,6 @@
       }));
       pendingAccent = null;
       pendingAccentRgb = null;
-      document.getElementById('fontUrlError').textContent = '';
-      document.getElementById('fontUrlInput').value = '';
       syncSettingsForm();
       showDialog('settingsDialog');
       if (focusField === 'font') {
@@ -1395,6 +1832,11 @@
           document.documentElement.style.setProperty('--accent', c.color);
           document.documentElement.style.setProperty('--accent-rgb', c.rgb);
           updateAccentBg(c.rgb);
+
+          // make accent change immediate + persist (survives page reload)
+          settings.accent = c.color;
+          settings.accentRgb = c.rgb;
+          saveSettings(settings);
         });
         container.appendChild(sw);
       });
@@ -1544,13 +1986,6 @@
       if (idx > 0) setFontSize(FONT_SIZES[idx - 1], true);
     }
 
-    function updatePopupState() {
-      var anyOpen = !!state.openMenu ||
-        contextMenu.classList.contains('show') ||
-        overlay.classList.contains('show');
-      document.body.classList.toggle('popup-open', anyOpen);
-    }
-
     function positionMenu(menu, trigger) {
       var rect = trigger.getBoundingClientRect();
       menu.style.left = Math.max(4, rect.left) + 'px';
@@ -1561,6 +1996,7 @@
       document.querySelectorAll('.menu-dropdown').forEach(function(m) { m.classList.remove('show'); });
       document.querySelectorAll('.menu-trigger').forEach(function(t) { t.classList.remove('open'); });
       state.openMenu = null;
+      closeTabSwitcher();
       updatePopupState();
     }
 
@@ -1617,9 +2053,32 @@
       openSettingsDialog();
     });
 
+    // Tab switcher trigger (browser-like 1-10 pages)
+    (function setupTabButton() {
+      var btn = document.getElementById('tabMenuBtn');
+      if (!btn) return;
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var sw = document.getElementById('tabSwitcher');
+        if (sw && sw.classList.contains('show')) {
+          closeTabSwitcher();
+        } else {
+          openTabSwitcher();
+        }
+      });
+    })();
+
     window.addEventListener('resize', function() {
       scheduleStatsUpdate();
-      if (!state.openMenu) return;
+      if (!state.openMenu) {
+        // still reposition tab switcher if visible
+        var sw = document.getElementById('tabSwitcher');
+        if (sw && sw.classList.contains('show')) {
+          var t = document.getElementById('tabMenuBtn');
+          if (t) positionTabSwitcher(t);
+        }
+        return;
+      }
       var trigger = document.querySelector('.menu-trigger.open');
       var menu = document.getElementById(state.openMenu);
       if (trigger && menu) positionMenu(menu, trigger);
@@ -1634,9 +2093,10 @@
     }
 
     document.addEventListener('click', function(e) {
-      if (e.target.closest('#menuBar') || e.target.closest('.menu-dropdown')) return;
+      if (e.target.closest('#menuBar') || e.target.closest('.menu-dropdown') || e.target.closest('#tabSwitcher')) return;
       closeAllMenus();
       hideContextMenu();
+      closeTabSwitcher();
     });
     document.getElementById('menuBar').addEventListener('click', function(e) { e.stopPropagation(); });
 
@@ -1646,6 +2106,11 @@
     }
     function hideOverlay() {
       overlay.classList.remove('show');
+      var historyDialog = document.getElementById('historyDialog');
+      if (historyDialog && historyDialog.classList.contains('show')) {
+        var titleEl = historyDialog.querySelector('.win-dialog-title');
+        if (titleEl) titleEl.textContent = '自動保存の履歴';
+      }
       document.querySelectorAll('.win-dialog').forEach(function(d) {
         d.classList.remove('show', 'resize-anim');
         d.style.height = '';
@@ -1727,18 +2192,43 @@
       document.getElementById('saveFileName').select();
     }
 
-    function loadHistory() {
-      try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
-      catch(e) { return []; }
+    function initHistories() {
+      // Migrate legacy single global history into tab 0 if no per-tab histories exist yet
+      try {
+        var oldRaw = localStorage.getItem(HISTORY_KEY);
+        var hasNew = localStorage.getItem(HISTORIES_KEY);
+        if (oldRaw && !hasNew) {
+          var oldArr = JSON.parse(oldRaw) || [];
+          if (oldArr.length) {
+            var all = {};
+            all["0"] = oldArr;
+            localStorage.setItem(HISTORIES_KEY, JSON.stringify(all));
+          }
+        }
+      } catch (e) {}
     }
 
-    function saveHistory(arr) {
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); } catch(e) {}
+    function loadHistory(tabIdx) {
+      if (typeof tabIdx !== 'number') tabIdx = activeTab;
+      try {
+        var all = JSON.parse(localStorage.getItem(HISTORIES_KEY)) || {};
+        return all[String(tabIdx)] || [];
+      } catch (e) { return []; }
+    }
+
+    function saveHistory(arr, tabIdx) {
+      if (typeof tabIdx !== 'number') tabIdx = activeTab;
+      try {
+        var all = JSON.parse(localStorage.getItem(HISTORIES_KEY)) || {};
+        all[String(tabIdx)] = arr;
+        localStorage.setItem(HISTORIES_KEY, JSON.stringify(all));
+      } catch (e) {}
     }
 
     function pushHistoryEntry() {
-      var content = edit.value;
-      var history = loadHistory();
+      var content = edit.value || '';
+      if (!content.trim()) return; // do not save empty / whitespace-only snapshots to history
+      var history = loadHistory(activeTab);
       if (history.length && history[0].content === content) return;
       history.unshift({
         id: Date.now(),
@@ -1747,15 +2237,25 @@
         savedAt: Date.now()
       });
       if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
-      saveHistory(history);
+      saveHistory(history, activeTab);
+    }
+
+    function forceSave() {
+      // Manually trigger what the auto-save timer does: persist + add snapshot to this tab's history
+      saveToStorage();
+      pushHistoryEntry();
+      showToast('強制保存しました');
+
+      // If the tab switcher is currently visible, refresh the dots immediately
+      var sw = document.getElementById('tabSwitcher');
+      if (sw && sw.classList.contains('show')) {
+        renderTabSlots();
+      }
     }
 
     function saveToStorage() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          content: edit.value, fileName: state.fileName, savedAt: Date.now()
-        }));
-      } catch(e) {}
+      // now per-tab
+      saveCurrentTab();
     }
 
     function formatHistoryTime(ts) {
@@ -1768,7 +2268,7 @@
       var dialog = document.getElementById('historyDialog');
       var doRender = function() {
         var list = document.getElementById('historyList');
-        var history = loadHistory();
+        var history = loadHistory(activeTab);
         list.innerHTML = '';
         if (!history.length) {
           list.innerHTML = '<div class="history-empty">履歴がありません</div>';
@@ -1803,26 +2303,237 @@
     }
 
     function openHistoryDialog() {
+      // Update title to indicate which tab's history we are looking at
+      var titleEl = document.querySelector('#historyDialog .win-dialog-title');
+      if (titleEl) {
+        titleEl.textContent = '自動保存の履歴（タブ ' + (activeTab + 1) + '）';
+      }
       renderHistoryList(false);
       showDialog('historyDialog');
     }
 
     function clearHistory() {
-      localStorage.removeItem(HISTORY_KEY);
+      var all = {};
+      try { all = JSON.parse(localStorage.getItem(HISTORIES_KEY)) || {}; } catch (e) {}
+      delete all[String(activeTab)];
+      try { localStorage.setItem(HISTORIES_KEY, JSON.stringify(all)); } catch (e) {}
+      // also clean legacy key if present
+      try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
       renderHistoryList(true);
-      showToast('履歴を消去しました');
+      showToast('タブ ' + (activeTab + 1) + ' の履歴を消去しました');
+    }
+
+    /* ===== Tabs (1-10 page switcher) ===== */
+    function saveTabs() {
+      try { localStorage.setItem(TABS_KEY, JSON.stringify(tabs)); } catch(e) {}
+    }
+    function saveActiveTab() {
+      try { localStorage.setItem(ACTIVE_KEY, String(activeTab)); } catch(e) {}
+    }
+
+    function initTabs() {
+      var migrated = false;
+      try {
+        var saved = JSON.parse(localStorage.getItem(TABS_KEY));
+        if (Array.isArray(saved) && saved.length === NUM_TABS) {
+          tabs = saved.map(function(t) {
+            return { content: t.content || '', fileName: t.fileName || '無題', savedAt: t.savedAt || Date.now() };
+          });
+        } else {
+          tabs = [];
+          for (var i = 0; i < NUM_TABS; i++) {
+            tabs.push({ content: '', fileName: '無題', savedAt: Date.now() });
+          }
+          // migrate legacy single document into tab 0
+          try {
+            var oldRaw = localStorage.getItem(STORAGE_KEY);
+            if (oldRaw) {
+              var od = JSON.parse(oldRaw);
+              if (od && od.content !== undefined) {
+                tabs[0].content = od.content || '';
+                tabs[0].fileName = od.fileName || '無題';
+                migrated = true;
+                migratedLegacy = true;
+              }
+            }
+          } catch (e) {}
+          saveTabs();
+        }
+      } catch (e) {
+        tabs = [];
+        for (var j = 0; j < NUM_TABS; j++) {
+          tabs.push({ content: '', fileName: '無題', savedAt: Date.now() });
+        }
+        saveTabs();
+      }
+      try {
+        var act = parseInt(localStorage.getItem(ACTIVE_KEY), 10);
+        if (!isNaN(act) && act >= 0 && act < NUM_TABS) activeTab = act;
+      } catch (e) {}
+      if (migrated) {
+        saveActiveTab();
+      }
+    }
+
+    function saveCurrentTab() {
+      if (!tabs[activeTab]) return;
+      tabs[activeTab].content = edit.value || '';
+      tabs[activeTab].fileName = state.fileName || '無題';
+      tabs[activeTab].savedAt = Date.now();
+      saveTabs();
+    }
+
+    function loadTab(idx) {
+      var t = tabs[idx];
+      if (!t) return;
+      edit.value = t.content || '';
+      state.fileName = t.fileName || '無題';
+      updateTitle();
+      updateStats();
+    }
+
+    function switchToTab(idx) {
+      if (idx < 0 || idx >= NUM_TABS || idx === activeTab) {
+        closeTabSwitcher();
+        return;
+      }
+      saveCurrentTab();
+      activeTab = idx;
+      saveActiveTab();
+      loadTab(activeTab);
+      updateCurrentTabUI();
+      closeTabSwitcher();
+      showToast('タブ ' + (activeTab + 1) + ' に切り替えました');
+      setTimeout(function () { try { edit.focus(); } catch (e) {} }, 30);
+    }
+
+    function updateCurrentTabUI() {
+      var numEl = document.getElementById('currentTabNum');
+      if (numEl) numEl.textContent = String(activeTab + 1);
+    }
+
+    function renderTabSlots() {
+      var bar = document.getElementById('tabBar');
+      if (!bar) return;
+      bar.innerHTML = '';
+      for (var i = 0; i < NUM_TABS; i++) {
+        var slot = document.createElement('button');
+        slot.type = 'button';
+        slot.className = 'tab-slot';
+        slot.dataset.tab = String(i);
+        slot.textContent = String(i + 1);
+        if (i === activeTab) slot.classList.add('active');
+        var tabData = tabs[i];
+        var hasContent = !!(tabData && typeof tabData.content === 'string' && tabData.content.trim().length > 0);
+        if (hasContent) slot.classList.add('has-content');
+        slot.addEventListener('click', function (ev) {
+          var tIdx = parseInt(ev.currentTarget.dataset.tab, 10);
+          switchToTab(tIdx);
+        });
+        bar.appendChild(slot);
+      }
+    }
+
+    function positionTabSwitcher(trigger) {
+      var switcher = document.getElementById('tabSwitcher');
+      if (!switcher || !trigger) return;
+      var rect = trigger.getBoundingClientRect();
+      var approxW = Math.min(320, Math.max(280, window.innerWidth * 0.7));
+      var left = Math.max(6, rect.left + rect.width / 2 - approxW / 2);
+      if (left + approxW + 6 > window.innerWidth) left = Math.max(6, window.innerWidth - approxW - 6);
+      switcher.style.left = left + 'px';
+      switcher.style.top = (rect.bottom + 5) + 'px';
+      // callout origin so it "pops" from near the button
+      var originPct = ((rect.left + rect.width / 2) - left) / approxW * 100;
+      switcher.style.transformOrigin = originPct.toFixed(1) + '% 0%';
+    }
+
+    function openTabSwitcher() {
+      closeAllMenus();
+      var switcher = document.getElementById('tabSwitcher');
+      var trigger = document.getElementById('tabMenuBtn');
+      if (!switcher || !trigger) return;
+
+      // Flush latest editor content so the "has content" dots are accurate
+      saveCurrentTab();
+
+      // Cancel any pending close that might hide it
+      if (tabCloseTimer) {
+        clearTimeout(tabCloseTimer);
+        tabCloseTimer = null;
+      }
+
+      // Force visible + reset any inline styles left by previous close
+      switcher.style.visibility = 'visible';
+      switcher.style.transition = 'none';
+      switcher.style.opacity = '0';
+      switcher.style.transform = 'scale(0.52, 0.32) translateY(-9px)';
+      switcher.classList.remove('show');
+
+      positionTabSwitcher(trigger);
+      renderTabSlots();
+
+      // force layout then animate (the squash-to-full + staggered numbers)
+      void switcher.offsetHeight;
+
+      switcher.style.transition = 'opacity 0.2s cubic-bezier(0.22,1,0.36,1), transform 0.36s cubic-bezier(0.22,1.0,0.32,1.22)';
+      switcher.style.opacity = '1';
+      switcher.style.transform = 'scale(1) translateY(0)';
+      switcher.classList.add('show');
+
+      trigger.classList.add('open');
+      updatePopupState();
+    }
+
+    function closeTabSwitcher() {
+      var switcher = document.getElementById('tabSwitcher');
+      var trigger = document.getElementById('tabMenuBtn');
+
+      if (tabCloseTimer) {
+        clearTimeout(tabCloseTimer);
+        tabCloseTimer = null;
+      }
+
+      if (switcher) {
+        switcher.classList.remove('show');
+        switcher.style.transition = 'opacity 0.14s ease, transform 0.14s ease';
+        switcher.style.opacity = '0';
+        switcher.style.transform = 'scale(0.7, 0.5) translateY(-4px)';
+
+        tabCloseTimer = setTimeout(function () {
+          tabCloseTimer = null;
+          if (switcher && !switcher.classList.contains('show')) {
+            switcher.style.visibility = 'hidden';
+            // clean up so next open starts fresh
+            switcher.style.transition = '';
+            switcher.style.opacity = '';
+            switcher.style.transform = '';
+          }
+        }, 180);
+      }
+      if (trigger) trigger.classList.remove('open');
+      updatePopupState();
+    }
+
+    function updatePopupState() {
+      var switcher = document.getElementById('tabSwitcher');
+      var tabOpen = !!(switcher && switcher.classList.contains('show'));
+      var anyOpen = !!state.openMenu ||
+        (contextMenu && contextMenu.classList.contains('show')) ||
+        (overlay && overlay.classList.contains('show')) ||
+        tabOpen;
+      document.body.classList.toggle('popup-open', anyOpen);
     }
 
     function restoreFromStorage() {
-      try {
-        var data = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        if (data && data.content !== undefined) {
-          edit.value = data.content;
-          state.fileName = data.fileName || '無題';
-          updateTitle();
-          showToast('前回の内容を復元しました', 2200);
-        }
-      } catch(e) {}
+      initTabs();
+      initHistories();
+      loadTab(activeTab);
+      updateCurrentTabUI();
+      if (migratedLegacy) {
+        showToast('前回の内容をタブ1に復元しました', 2200);
+        migratedLegacy = false;
+      }
     }
 
     function setupAutoSave() {
@@ -1951,6 +2662,22 @@
       } else if (state.dialogType === 'clear') {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(HISTORY_KEY);
+        localStorage.removeItem(HISTORIES_KEY);
+        localStorage.removeItem(TABS_KEY);
+        localStorage.removeItem(ACTIVE_KEY);
+        // reset in-memory tabs to fresh empty set
+        tabs = [];
+        for (var k = 0; k < NUM_TABS; k++) {
+          tabs.push({ content: '', fileName: '無題', savedAt: Date.now() });
+        }
+        activeTab = 0;
+        saveTabs();
+        saveActiveTab();
+        edit.value = '';
+        state.fileName = '無題';
+        updateTitle();
+        updateStats();
+        updateCurrentTabUI();
         showToast('保存データを消去しました');
       }
       state.dialogType = null; hideOverlay();
@@ -1992,7 +2719,9 @@
     });
 
     document.getElementById('settingsCancel').addEventListener('click', function() {
-      if (settingsDraft) Object.assign(settings, settingsDraft);
+      if (settingsDraft) {
+        Object.assign(settings, settingsDraft);
+      }
       settingsDraft = null;
       pendingAccent = null;
       pendingAccentRgb = null;
@@ -2016,17 +2745,62 @@
       }
     });
 
-    document.getElementById('fontAddBtn').addEventListener('click', addCustomFont);
-    document.getElementById('fontUrlInput').addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') addCustomFont();
-    });
+    // Font management button next to the select
+    var fontManageBtn = document.getElementById('fontManageBtn');
+    if (fontManageBtn) {
+      fontManageBtn.addEventListener('click', function() {
+        openFontManagerDialog();
+      });
+    }
+
+    // Manager dialog listeners
+    var managerAddBtn = document.getElementById('managerFontAddBtn');
+    if (managerAddBtn) {
+      managerAddBtn.addEventListener('click', function() {
+        var input = document.getElementById('managerFontUrlInput');
+        var err = document.getElementById('managerFontUrlError');
+        if (input && err) {
+          addCustomFontFromInput(input, err);
+          renderCustomFontList();
+        }
+      });
+    }
+    var managerInput = document.getElementById('managerFontUrlInput');
+    if (managerInput) {
+      managerInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          var err = document.getElementById('managerFontUrlError');
+          if (addCustomFontFromInput(managerInput, err)) {
+            renderCustomFontList();
+          }
+        }
+      });
+    }
+
+    var fontManagerClose = document.getElementById('fontManagerCloseBtn');
+    if (fontManagerClose) {
+      fontManagerClose.addEventListener('click', function() {
+        var dialog = document.getElementById('fontManagerDialog');
+        if (dialog) dialog.classList.remove('show');
+        if (!document.getElementById('settingsDialog').classList.contains('show')) {
+          hideOverlay();
+        } else {
+          updatePopupState();
+        }
+      });
+    }
 
     document.getElementById('openHistoryBtn').addEventListener('click', function() {
       document.getElementById('settingsDialog').classList.remove('show');
       openHistoryDialog();
     });
 
-    document.getElementById('historyCloseBtn').addEventListener('click', hideOverlay);
+    document.getElementById('historyCloseBtn').addEventListener('click', function() {
+      // restore original title for cleanliness (will be overwritten on next open anyway)
+      var titleEl = document.querySelector('#historyDialog .win-dialog-title');
+      if (titleEl) titleEl.textContent = '自動保存の履歴';
+      hideOverlay();
+    });
     document.getElementById('historyClearBtn').addEventListener('click', clearHistory);
 
     document.getElementById('clearDataBtn').addEventListener('click', function() {
@@ -2046,8 +2820,18 @@
         }
         return;
       }
+      var fontMgr = document.getElementById('fontManagerDialog');
+      if (fontMgr && fontMgr.classList.contains('show')) {
+        fontMgr.classList.remove('show');
+        if (!document.getElementById('settingsDialog').classList.contains('show')) {
+          hideOverlay();
+        } else {
+          updatePopupState();
+        }
+        return;
+      }
       if (document.getElementById('settingsDialog').classList.contains('show')) {
-        document.getElementById('settingsCancel').click();
+        document.getElementById('settingsOk').click();
         return;
       }
       if (document.getElementById('historyDialog').classList.contains('show')) {
@@ -2098,6 +2882,26 @@
       if (ctrl && e.key === 'a') { e.preventDefault(); edit.select(); updateStats(); return; }
       if (ctrl && e.key === 'ArrowUp') { e.preventDefault(); zoomIn(); return; }
       if (ctrl && e.key === 'ArrowDown') { e.preventDefault(); zoomOut(); return; }
+
+      // Ctrl+1 : force save (persist current tab + add snapshot to its history immediately)
+      if (ctrl && e.key === '1') {
+        e.preventDefault();
+        forceSave();
+        return;
+      }
+
+      // browser-like tab switch: Ctrl+Shift+1..9 / Ctrl+Shift+0 (for tab 10)
+      if (ctrl && e.shiftKey && !e.altKey) {
+        var digit = null;
+        if (e.key >= '1' && e.key <= '9') digit = parseInt(e.key, 10) - 1;
+        else if (e.key === '0') digit = 9;
+        if (digit !== null && digit >= 0 && digit < NUM_TABS) {
+          e.preventDefault();
+          switchToTab(digit);
+          return;
+        }
+      }
+
       if (e.altKey) {
         var key = e.key.toLowerCase();
         if (key === 'f') { e.preventDefault(); openMenu('fileMenu', document.querySelector('[data-menu="fileMenu"]')); }
@@ -2105,7 +2909,7 @@
         if (key === 's') { e.preventDefault(); openSettingsDialog(); }
         if (key === 'h') { e.preventDefault(); openHistoryDialog(); }
       }
-      if (e.key === 'Escape') { closeAllMenus(); hideOverlay(); hideContextMenu(); }
+      if (e.key === 'Escape') { closeAllMenus(); closeTabSwitcher(); hideOverlay(); hideContextMenu(); }
     });
 
     initColorSwatches();
