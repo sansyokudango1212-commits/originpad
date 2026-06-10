@@ -4,9 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
    <meta name="google-site-verification" content="Z5LCrw2wiWOC0bTQynoScEQ9LTvHoEucbmQwoReCLXE" />
-  <title>無題 - originpad</title>
-  <meta name="description" content="originpad - 学生が開発したメモ帳アプリ">
+  <title>OriginPad</title>
+  <meta name="description" content="OriginPadはブラウザで使えるメモアプリです。自動保存、タブ切替、履歴管理、ショートカット対応で素早くメモできます。">
   <link rel="icon" href="/icon-512.png" sizes="512x512">
+  <link rel="canonical" href="https://sansyokudango1212-commits.github.io/">
+  <meta property="og:title" content="OriginPad">
+  <meta property="og:description" content="OriginPadはブラウザで使えるメモアプリです。自動保存、タブ切替、履歴管理、ショートカット対応で素早くメモできます。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://sansyokudango1212-commits.github.io/">
+  <meta property="og:image" content="https://sansyokudango1212-commits.github.io/icon-512.png">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link id="gfontsBase" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&family=Noto+Serif+JP:wght@400&family=Zen+Kaku+Gothic+New:wght@400&family=Kosugi+Maru&family=Source+Code+Pro:wght@400&display=swap" rel="stylesheet">
@@ -100,7 +107,7 @@
     #bgLayer {
       position: fixed;
       inset: 0;
-      z-index: 0;
+      z-index: -1;
       pointer-events: none;
       background: var(--bg);
       transition: background 0.45s ease;
@@ -110,10 +117,7 @@
       position: relative;
       z-index: 100;
     }
-    .editor-wrap {
-      position: relative;
-      z-index: 1;
-    }
+    /* editor-wrap styles are defined later; avoid duplicate rules */
     .status-bar {
       position: relative;
       z-index: 2;
@@ -512,6 +516,21 @@
       margin: 0 10px;
       color: var(--dim);
       opacity: 0.55;
+    }
+
+    /* Mobile: center status bar to avoid edge interference */
+    @media (max-width: 768px) {
+      .status-bar {
+        position: relative;
+        width: auto;
+        justify-content: center;
+        padding: 0 20px;
+      }
+
+      .status-hud {
+        width: auto;
+        justify-content: center;
+      }
     }
 
     /* ── Overlay & Dialog ── */
@@ -1215,7 +1234,7 @@
       <span class="title-bar-text" id="titleBarText">無題 - originpad</span>
     </div>
 
-    <nav class="menu-bar" id="menuBar">
+    <nav class="menu-bar" id="menuBar" data-nosnippet>
       <button type="button" class="menu-trigger" data-menu="fileMenu">ファイル(<u>F</u>)</button>
       <button type="button" class="menu-trigger" data-menu="editMenu">編集(<u>E</u>)</button>
       <button type="button" class="menu-trigger" id="historyMenuBtn">履歴(<u>H</u>)</button>
@@ -1224,7 +1243,7 @@
     </nav>
   </header>
 
-  <div class="menu-dropdown glass glass-popup" id="fileMenu">
+  <div class="menu-dropdown glass glass-popup" id="fileMenu" data-nosnippet>
     <button type="button" class="menu-item" data-action="new">新規作成(<u>N</u>)<span class="shortcut">Ctrl+N</span></button>
     <button type="button" class="menu-item" data-action="open">開く(<u>O</u>)<span class="shortcut">Ctrl+O</span></button>
     <button type="button" class="menu-item" data-action="save">保存(<u>S</u>)<span class="shortcut">Ctrl+S</span></button>
@@ -1232,7 +1251,7 @@
     <button type="button" class="menu-item" data-action="history">自動保存の履歴(<u>H</u>)</button>
   </div>
 
-  <div class="menu-dropdown glass glass-popup" id="editMenu">
+  <div class="menu-dropdown glass glass-popup" id="editMenu" data-nosnippet>
     <button type="button" class="menu-item" data-action="cut">切り取り(<u>T</u>)<span class="shortcut">Ctrl+X</span></button>
     <button type="button" class="menu-item" data-action="copy">コピー(<u>C</u>)<span class="shortcut">Ctrl+C</span></button>
     <button type="button" class="menu-item" data-action="paste">貼り付け(<u>P</u>)<span class="shortcut">Ctrl+V</span></button>
@@ -1372,8 +1391,8 @@
   <div class="win-dialog glass glass-popup" id="infoDialog">
     <div class="win-dialog-title">information</div>
     <div class="win-dialog-body">
-      <p style="font-size:12px; line-height:1.6;">バグ山盛りなんでちょくちょく修正していきます。気長に待ってね<br><br>Engine:Notepad26</p>
-      <p style="font-size:11px; color:var(--dim); margin-top:8px;">v1.0.0</p>
+      <p style="font-size:12px; line-height:1.6;">バグ山盛りなんでちょくちょく修正していきます。気長に待ってね<br>vscodeのチャットでトークン使い切ったからアプデまでちょっと待ってね<br><br>Engine:Notepad26</p>
+      <p style="font-size:11px; color:var(--dim); margin-top:8px;">v1.2 originpad</p>
     </div>
     <div class="win-dialog-footer">
       <button class="win-btn primary" id="infoCloseBtn">閉じる</button>
@@ -2690,9 +2709,13 @@
     document.getElementById('saveOk').addEventListener('click', function() {
       var name = document.getElementById('saveFileName').value.trim() || '無題.txt';
       if (!/\.(txt|log|md|csv)$/i.test(name)) name += '.txt';
-      state.fileName = name; updateTitle();
-      downloadFile(name); saveToStorage();
-      showToast('保存しました'); hideOverlay();
+      state.fileName = name;
+      updateTitle();
+      saveCurrentTab();
+      downloadFile(name);
+      saveToStorage();
+      showToast('保存しました');
+      hideOverlay();
     });
 
     document.getElementById('saveCancel').addEventListener('click', hideOverlay);
@@ -2919,6 +2942,13 @@
     if (settings.autoSave) pushHistoryEntry();
     updateStats();
     updateTitle();
+    
+    // Force reset: remove all show classes from dialogs, menus, overlays
+    document.querySelectorAll('.overlay, .win-dialog, .menu-dropdown, #tabSwitcher, #contextMenu').forEach(function(el) {
+      el.classList.remove('show');
+    });
+    document.body.classList.remove('popup-open');
+    
     edit.focus();
   })();
   </script>
